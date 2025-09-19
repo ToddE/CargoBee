@@ -1,4 +1,4 @@
-#!/home/emerson/Github/contetris/venv/bin/python3
+#!/home/emerson/Github/ConTetris/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

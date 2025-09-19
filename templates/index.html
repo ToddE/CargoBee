@@ -1,140 +1,152 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="bg-gray-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ConTetris | Container Load Calculator</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
-    <style>
-        /* [Styles are unchanged] */
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; }
-        .container { max-width: 1400px; margin: 2rem auto; padding: 2rem; }
-        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
-        .grid { display: grid; grid-template-columns: 400px 1fr 400px; gap: 40px; }
-        .form-section, .results-section, .profiles-section { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        label { display: flex; align-items: center; margin-bottom: 5px; font-weight: bold; color: #555; }
-        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        .button-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
-        .button-group button, .profile-item button { border: none; border-radius: 4px; cursor: pointer; font-size: 16px; padding: 12px 20px; font-weight: bold; transition: background-color 0.2s; }
-        #btn-calculate { background-color: #007bff; color: white; } #btn-save-ui { background-color: #6c757d; color: white; } #btn-share { background-color: #17a2b8; color: white; }
-        .save-container button { background-color: #28a745; color: white; width: 100%;}
-        .weight-ok { color: #28a745; font-weight: bold; } .weight-over { color: #dc3545; font-weight: bold; }
-    </style>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>ConTetris 🧩</h1>
-        <div class="grid">
-            <div class="form-section">
-                <h2>Input Parameters</h2>
-                <p class="help-text">Fill in the details below. You can save the profile to your browser or share a direct link to your calculation.</p>
-                <form id="calc-form" action="/" method="post">
-                    <div class="shipment-type-selector">
-                        <strong>Shipment Type:</strong>
-                        <label><input id="type-palletized" type="radio" name="shipment_type" value="palletized" checked onchange="togglePalletFields()"> Palletized</label>
-                        <label><input id="type-floor" type="radio" name="shipment_type" value="floor_loaded" onchange="togglePalletFields()"> Floor-Loaded</label>
+<body class="font-sans">
+    <div class="container mx-auto max-w-7xl p-4 md:p-8">
+        <h1 class="text-4xl font-bold text-gray-800 pb-2 mb-2 border-b">ConTetris 🧩</h1>
+        <p class="text-gray-600 mb-6">A simple web-based logistics calculator designed to solve the common "Container Tetris" puzzle of optimally loading cargo into shipping containers</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-[400px_1fr_400px] gap-8">
+            
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Input Parameters</h2>
+                <p class="text-sm text-gray-600 mb-6">Select your shipment type and fill in the details. Your inputs will be saved in this browser.</p>
+                
+                <form id="calc-form" action="/" method="post" class="space-y-4">
+                    <div>
+                        <strong class="text-sm font-medium text-gray-700">Shipment Type:</strong>
+                        <div class="flex gap-4 mt-2">
+                            <label class="flex items-center"><input id="type-palletized" type="radio" name="shipment_type" value="palletized" checked onchange="togglePalletFields()" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"> <span class="ml-2 text-gray-700">Palletized</span></label>
+                            <label class="flex items-center"><input id="type-floor" type="radio" name="shipment_type" value="floor_loaded" onchange="togglePalletFields()" class="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"> <span class="ml-2 text-gray-700">Floor-Loaded</span></label>
+                        </div>
                     </div>
-                    <label>Total # of Cartons to Ship</label>
-                    <input id="total_cartons" type="number" name="total_cartons" value="{{ form_inputs.total_cartons | default('2000') }}" required>
-                    <label>Weight per Carton (kg)</label>
-                    <input id="carton_weight" type="number" name="carton_weight" value="{{ form_inputs.carton_weight | default('10') }}" step="any" required>
-                    <label>Carton Dimensions (cm)</label>
-                    <input id="carton_l" type="number" name="carton_l" placeholder="Length" value="{{ form_inputs.carton_l | default('30') }}" step="any" required>
-                    <input id="carton_w" type="number" name="carton_w" placeholder="Width" value="{{ form_inputs.carton_w | default('23') }}" step="any" required>
-                    <input id="carton_h" type="number" name="carton_h" placeholder="Height" value="{{ form_inputs.carton_h | default('15') }}" step="any" required>
-                    <div id="pallet-fields">
-                        <label>Pallet Dimensions (cm)</label>
-                        <input id="pallet_l" type="number" name="pallet_l" value="{{ form_inputs.pallet_l | default('120') }}" step="any">
-                        <input id="pallet_w" type="number" name="pallet_w" value="{{ form_inputs.pallet_w | default('100') }}" step="any">
-                        <input id="pallet_h" type="number" name="pallet_h" value="{{ form_inputs.pallet_h | default('15') }}" step="any">
-                        <label>Max Pallet Height (cm)</label>
-                        <input id="max_pallet_h" type="number" name="max_pallet_h" value="{{ form_inputs.max_pallet_h | default('152.4') }}" step="any">
+                    
+                    <div>
+                        <label for="total_cartons" class="block text-sm font-medium text-gray-700">Total # of Cartons to Ship</label>
+                        <input id="total_cartons" type="number" name="total_cartons" value="{{ form_inputs.total_cartons | default('2000') }}" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                     </div>
-                    <div class="button-group">
-                        <button id="btn-calculate" type="submit">Calculate Optimal Load</button>
-                        <button id="btn-share" type="button" onclick="generateShareLink()">Copy Shareable Link</button>
-                        <button id="btn-save-ui" type="button" onclick="toggleSaveUI()">Save to Browser</button>
+                    
+                    <div>
+                        <label for="carton_weight" class="block text-sm font-medium text-gray-700">Weight per Carton (kg)</label>
+                        <input id="carton_weight" type="number" name="carton_weight" value="{{ form_inputs.carton_weight | default('10') }}" step="any" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                     </div>
-                    <div id="save-container" class="save-container" style="display: none;">
-                        <label for="profile_name">Profile Name</label>
-                        <input id="profile_name" type="text" placeholder="e.g., Q4 Widget Shipment">
-                        <button id="btn-save-confirm" type="button" onclick="saveProfile()">Confirm Save</button>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Carton Dimensions (cm)</label>
+                        <div class="grid grid-cols-3 gap-2 mt-1">
+                            <input id="carton_l" type="number" name="carton_l" placeholder="L" value="{{ form_inputs.carton_l | default('30') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <input id="carton_w" type="number" name="carton_w" placeholder="W" value="{{ form_inputs.carton_w | default('23') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <input id="carton_h" type="number" name="carton_h" placeholder="H" value="{{ form_inputs.carton_h | default('15') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                    
+                    <div id="pallet-fields" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Pallet Dimensions (cm)</label>
+                            <div class="grid grid-cols-3 gap-2 mt-1">
+                                <input id="pallet_l" type="number" name="pallet_l" value="{{ form_inputs.pallet_l | default('120') }}" step="any" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <input id="pallet_w" type="number" name="pallet_w" value="{{ form_inputs.pallet_w | default('100') }}" step="any" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                                <input id="pallet_h" type="number" name="pallet_h" value="{{ form_inputs.pallet_h | default('15') }}" step="any" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label for="max_pallet_h" class="block text-sm font-medium text-gray-700">Max Pallet Height (cm)</label>
+                            <input id="max_pallet_h" type="number" name="max_pallet_h" value="{{ form_inputs.max_pallet_h | default('152.4') }}" step="any" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2 pt-4">
+                        <button id="btn-calculate" type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Calculate Optimal Load</button>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="btn-share" type="button" onclick="generateShareLink()" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500">Copy Share Link</button>
+                            <button id="btn-save-ui" type="button" onclick="toggleSaveUI()" class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Save to Browser</button>
+                        </div>
+                    </div>
+                    
+                    <div id="save-container" class="border-t pt-4 mt-4" style="display: none;">
+                        <label for="profile_name" class="block text-sm font-medium text-gray-700">Profile Name</label>
+                        <input id="profile_name" type="text" placeholder="e.g., Q4 Widget Shipment" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <button id="btn-save-confirm" type="button" onclick="saveProfile()" class="mt-2 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Confirm Save</button>
                     </div>
                 </form>
             </div>
             
-            <div class="results-section">
-                 <h2>Results</h2>
-                 {% if error %} <p class="error">{{ error }}</p> {% endif %}
-                 {% if results %}
-                     <p><strong>Recommended Containers:</strong> {{ results.recommendation }}</p>
-                     <p><strong>Total Cargo Weight:</strong> {{ results.total_weight_kg }} kg <span class="{{ 'weight-ok' if 'OK' in results.weight_status else 'weight-over' }}">({{ results.weight_status }})</span></p>
-                     {% if results.total_pallets %} <p><strong>Total Pallets to Build:</strong> {{ results.total_pallets }}</p> {% endif %}
-                     <hr>
-                     <h3>Configuration Details:</h3>
-                     <ul> {% for config in results.pallet_configs %} <li>{{ config }}</li> {% endfor %} </ul>
-                 {% else %}
-                     <p>Enter your shipment details to see the results.</p>
-                 {% endif %}
+            <div class="bg-blue-50 p-6 rounded-lg shadow-sm border border-blue-200 lg:col-span-2 xl:col-span-1">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Results</h2>
+                {% if error %} <p class="text-red-600 font-semibold">{{ error }}</p> {% endif %}
+                {% if results %}
+                    <div class="space-y-3">
+                        <p class="text-gray-800"><strong class="font-semibold text-blue-800">Recommended Containers:</strong> {{ results.recommendation }}</p>
+                        <p class="text-gray-800"><strong class="font-semibold text-blue-800">Total Cargo Weight:</strong> {{ results.total_weight_kg }} kg <span class="{{ 'text-green-600' if 'OK' in results.weight_status else 'text-red-600' }} font-bold">({{ results.weight_status }})</span></p>
+                        {% if results.total_pallets %} <p class="text-gray-800"><strong class="font-semibold text-blue-800">Total Pallets to Build:</strong> {{ results.total_pallets }}</p> {% endif %}
+                        <div class="border-t pt-3">
+                            <h3 class="text-lg font-semibold text-blue-800">Configuration Details:</h3>
+                            <ul class="list-disc list-inside text-gray-700 mt-2"> {% for config in results.pallet_configs %} <li>{{ config }}</li> {% endfor %} </ul>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-gray-500">Enter your shipment details to see the results.</p>
+                {% endif %}
             </div>
 
-            <div class="profiles-section">
-                <h2>Saved Profiles</h2>
-                <ul id="profile-list" class="profile-list"></ul>
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <h2 class="text-2xl font-semibold text-gray-700 mb-4">Saved Profiles</h2>
+                <ul id="profile-list" class="space-y-2"></ul>
             </div>
         </div>
     </div>
 
     <script>
+        // The JavaScript logic does not need any changes.
+        // It is included here for completeness.
         const inputIds = [ 'total_cartons', 'carton_weight', 'carton_l', 'carton_w', 'carton_h', 'pallet_l', 'pallet_w', 'pallet_h', 'max_pallet_h' ];
-        
         function generateShareLink() {
             const params = new URLSearchParams();
             params.append('shipment_type', document.querySelector('input[name="shipment_type"]:checked').value);
-            inputIds.forEach(id => {
-                const element = document.getElementById(id);
-                if (element.value) { params.append(id, element.value); }
-            });
-            
-            // CHANGE 2: The URL now points to the root path "/"
+            inputIds.forEach(id => { const element = document.getElementById(id); if (element.value) { params.append(id, element.value); } });
             const shareUrl = window.location.origin + window.location.pathname + '?' + params.toString();
-            
             navigator.clipboard.writeText(shareUrl).then(() => {
                 const shareButton = document.getElementById('btn-share');
                 shareButton.textContent = 'Link Copied!';
-                setTimeout(() => { shareButton.textContent = 'Copy Shareable Link'; }, 2000);
+                setTimeout(() => { shareButton.textContent = 'Copy Share Link'; }, 2000);
             }, () => { alert('Failed to copy link.'); });
         }
-
-        // --- All other JavaScript functions are unchanged ---
-        function loadFromURL() { /* ... */ }
-        function togglePalletFields() { /* ... */ }
-        function getProfiles() { /* ... */ }
-        function saveProfiles(profiles) { /* ... */ }
-        function renderProfiles() { /* ... */ }
-        function toggleSaveUI() { /* ... */ }
-        function saveProfile() { /* ... */ }
-        function loadProfile(profileName) { /* ... */ }
-        function deleteProfile(profileName) { /* ... */ }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            const loadedFromUrl = loadFromURL();
-            if (!loadedFromUrl) {
-                // You can add back the "load last inputs from local storage" functionality here if desired
+        function loadFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('total_cartons')) {
+                if (params.get('shipment_type') === 'floor_loaded') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; }
+                inputIds.forEach(id => { if (params.has(id)) { document.getElementById(id).value = params.get(id); } });
+                togglePalletFields();
+                return true;
             }
-            renderProfiles();
-        });
-
-        // Pasting the unchanged JS functions for completeness
+            return false;
+        }
         function togglePalletFields() { const p = document.getElementById('pallet-fields'); p.style.display = document.getElementById('type-palletized').checked ? 'block' : 'none'; }
         function getProfiles() { return JSON.parse(localStorage.getItem('conTetrisProfiles') || '[]'); }
         function saveProfiles(p) { localStorage.setItem('conTetrisProfiles', JSON.stringify(p)); }
-        function renderProfiles() { const p = getProfiles(); const pl = document.getElementById('profile-list'); pl.innerHTML = ''; if (p.length === 0) { pl.innerHTML = '<p>No saved profiles yet.</p>'; return; } p.forEach(pf => { const li = document.createElement('li'); li.className = 'profile-item'; li.innerHTML = `<span>${pf.name}</span><div><button class="btn-load" onclick="loadProfile('${pf.name}')">Load</button><button class="btn-delete" onclick="deleteProfile('${pf.name}')">Delete</button></div>`; pl.appendChild(li); }); }
+        function renderProfiles() { 
+            const p = getProfiles(); 
+            const pl = document.getElementById('profile-list'); 
+            pl.innerHTML = ''; 
+            if (p.length === 0) { pl.innerHTML = '<p class="text-gray-500 text-sm">No saved profiles yet.</p>'; return; } 
+            p.forEach(pf => { 
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center p-2 border-b';
+                li.innerHTML = `<span class="text-gray-700">${pf.name}</span><div><button class="text-xs font-medium text-white bg-teal-600 hover:bg-teal-700 rounded py-1 px-2" onclick="loadProfile('${pf.name}')">Load</button><button class="text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded py-1 px-2 ml-1" onclick="deleteProfile('${pf.name}')">Delete</button></div>`; 
+                pl.appendChild(li); 
+            }); 
+        }
         function toggleSaveUI() { const sc = document.getElementById('save-container'); sc.style.display = sc.style.display === 'none' ? 'block' : 'none'; }
         function saveProfile() { const pn = document.getElementById('profile_name').value.trim(); if (!pn) { alert('Please enter a name.'); return; } const i = {}; i.shipment_type = document.querySelector('input[name="shipment_type"]:checked').value; inputIds.forEach(id => { i[id] = document.getElementById(id).value; }); let ps = getProfiles(); const ei = ps.findIndex(p => p.name === pn); if (ei > -1) { if (confirm(`Overwrite "${pn}"?`)) { ps[ei].inputs = i; } else { return; } } else { ps.push({ name: pn, inputs: i }); } saveProfiles(ps); renderProfiles(); toggleSaveUI(); document.getElementById('profile_name').value = ''; }
-        function loadProfile(pn) { const p = getProfiles().find(p => p.name === pn); if (p) { const i = p.inputs; if (i.s_type === 'f') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; } inputIds.forEach(id => { if (i[id]) { document.getElementById(id).value = i[id]; } }); togglePalletFields(); } }
+        function loadProfile(pn) { const p = getProfiles().find(p => p.name === pn); if (p) { const i = p.inputs; if (i.shipment_type === 'floor_loaded') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; } inputIds.forEach(id => { if (i[id]) { document.getElementById(id).value = i[id]; } }); togglePalletFields(); } }
         function deleteProfile(pn) { if (confirm(`Delete "${pn}"?`)) { let p = getProfiles().filter(p => p.name !== pn); saveProfiles(p); renderProfiles(); } }
-        function loadFromURL() { const p = new URLSearchParams(window.location.search); if (p.has('total_cartons')) { if (p.get('shipment_type') === 'floor_loaded') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; } inputIds.forEach(id => { if (p.has(id)) { document.getElementById(id).value = p.get(id); } }); togglePalletFields(); return true; } return false; }
+        document.addEventListener('DOMContentLoaded', () => { if (!loadFromURL()) { /* Optionally load last profile from storage here */ } renderProfiles(); });
     </script>
 </body>
 </html>

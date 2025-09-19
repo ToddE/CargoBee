@@ -3,7 +3,7 @@ from flask import Flask, render_template, request
 
 app = Flask(__name__)
 
-# Constants remain the same
+# Constants
 ROAD_WEIGHT_LIMIT_KG = 19950 
 CONTAINERS = {
     '40ft_HC': {'name': "40' High Cube", 'length': 1203, 'width': 235, 'height': 269},
@@ -11,7 +11,7 @@ CONTAINERS = {
     '20ft': {'name': "20' Standard", 'length': 590, 'width': 235, 'height': 239}
 }
 
-# Helper function is unchanged
+# Helper function to simulate loading a single container
 def simulate_single_container_load(container, pallet_inventory, pallet_configs):
     pallets_to_load = pallet_inventory.copy()
     floor_slots = max(math.floor(container['length']/pallet_configs['l']) * math.floor(container['width']/pallet_configs['w']), math.floor(container['length']/pallet_configs['w']) * math.floor(container['width']/pallet_configs['l']))
@@ -31,16 +31,13 @@ def simulate_single_container_load(container, pallet_inventory, pallet_configs):
             else: break
     return pallets_that_fit
 
-# --- NEW MERGED ROUTE ---
-# This single function now handles both displaying the form (GET) and calculating (POST)
+# Main route for handling the form (GET) and calculations (POST)
 @app.route('/', methods=['GET', 'POST'])
 def home():
     form_inputs = request.form.copy() if request.method == 'POST' else request.args.copy()
     
-    # If the page is loaded with a POST request (form submission), run the calculation
     if request.method == 'POST':
         try:
-            # (The entire calculation logic from the previous calculate() function goes here)
             shipment_type = form_inputs.get('shipment_type')
             total_cartons = int(form_inputs['total_cartons'])
             carton_l, carton_w, carton_h = float(form_inputs['carton_l']), float(form_inputs['carton_w']), float(form_inputs['carton_h'])
@@ -143,8 +140,7 @@ def home():
         except Exception as e:
             return render_template('index.html', containers=CONTAINERS, error=f"Calculation Error: {e}", form_inputs=form_inputs)
 
-    # If the page is loaded with a GET request, just display the page
-    # The JavaScript will handle populating the form from URL args
+    # For GET requests, just display the page
     return render_template('index.html', containers=CONTAINERS, form_inputs=form_inputs)
 
 if __name__ == '__main__':
