@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ConTetris | Container Load Calculator</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧩</text></svg>">
+    <style>
+        /* [Styles are unchanged] */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; background-color: #f8f9fa; }
+        .container { max-width: 1400px; margin: 2rem auto; padding: 2rem; }
+        h1, h2 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+        .grid { display: grid; grid-template-columns: 400px 1fr 400px; gap: 40px; }
+        .form-section, .results-section, .profiles-section { padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        label { display: flex; align-items: center; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="number"], input[type="text"], select { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .button-group { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+        .button-group button, .profile-item button { border: none; border-radius: 4px; cursor: pointer; font-size: 16px; padding: 12px 20px; font-weight: bold; transition: background-color 0.2s; }
+        #btn-calculate { background-color: #007bff; color: white; } #btn-save-ui { background-color: #6c757d; color: white; } #btn-share { background-color: #17a2b8; color: white; }
+        .save-container button { background-color: #28a745; color: white; width: 100%;}
+        .weight-ok { color: #28a745; font-weight: bold; } .weight-over { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ConTetris 🧩</h1>
+        <div class="grid">
+            <div class="form-section">
+                <h2>Input Parameters</h2>
+                <p class="help-text">Fill in the details below. You can save the profile to your browser or share a direct link to your calculation.</p>
+                <form id="calc-form" action="/" method="post">
+                    <div class="shipment-type-selector">
+                        <strong>Shipment Type:</strong>
+                        <label><input id="type-palletized" type="radio" name="shipment_type" value="palletized" checked onchange="togglePalletFields()"> Palletized</label>
+                        <label><input id="type-floor" type="radio" name="shipment_type" value="floor_loaded" onchange="togglePalletFields()"> Floor-Loaded</label>
+                    </div>
+                    <label>Total # of Cartons to Ship</label>
+                    <input id="total_cartons" type="number" name="total_cartons" value="{{ form_inputs.total_cartons | default('2000') }}" required>
+                    <label>Weight per Carton (kg)</label>
+                    <input id="carton_weight" type="number" name="carton_weight" value="{{ form_inputs.carton_weight | default('10') }}" step="any" required>
+                    <label>Carton Dimensions (cm)</label>
+                    <input id="carton_l" type="number" name="carton_l" placeholder="Length" value="{{ form_inputs.carton_l | default('30') }}" step="any" required>
+                    <input id="carton_w" type="number" name="carton_w" placeholder="Width" value="{{ form_inputs.carton_w | default('23') }}" step="any" required>
+                    <input id="carton_h" type="number" name="carton_h" placeholder="Height" value="{{ form_inputs.carton_h | default('15') }}" step="any" required>
+                    <div id="pallet-fields">
+                        <label>Pallet Dimensions (cm)</label>
+                        <input id="pallet_l" type="number" name="pallet_l" value="{{ form_inputs.pallet_l | default('120') }}" step="any">
+                        <input id="pallet_w" type="number" name="pallet_w" value="{{ form_inputs.pallet_w | default('100') }}" step="any">
+                        <input id="pallet_h" type="number" name="pallet_h" value="{{ form_inputs.pallet_h | default('15') }}" step="any">
+                        <label>Max Pallet Height (cm)</label>
+                        <input id="max_pallet_h" type="number" name="max_pallet_h" value="{{ form_inputs.max_pallet_h | default('152.4') }}" step="any">
+                    </div>
+                    <div class="button-group">
+                        <button id="btn-calculate" type="submit">Calculate Optimal Load</button>
+                        <button id="btn-share" type="button" onclick="generateShareLink()">Copy Shareable Link</button>
+                        <button id="btn-save-ui" type="button" onclick="toggleSaveUI()">Save to Browser</button>
+                    </div>
+                    <div id="save-container" class="save-container" style="display: none;">
+                        <label for="profile_name">Profile Name</label>
+                        <input id="profile_name" type="text" placeholder="e.g., Q4 Widget Shipment">
+                        <button id="btn-save-confirm" type="button" onclick="saveProfile()">Confirm Save</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="results-section">
+                 <h2>Results</h2>
+                 {% if error %} <p class="error">{{ error }}</p> {% endif %}
+                 {% if results %}
+                     <p><strong>Recommended Containers:</strong> {{ results.recommendation }}</p>
+                     <p><strong>Total Cargo Weight:</strong> {{ results.total_weight_kg }} kg <span class="{{ 'weight-ok' if 'OK' in results.weight_status else 'weight-over' }}">({{ results.weight_status }})</span></p>
+                     {% if results.total_pallets %} <p><strong>Total Pallets to Build:</strong> {{ results.total_pallets }}</p> {% endif %}
+                     <hr>
+                     <h3>Configuration Details:</h3>
+                     <ul> {% for config in results.pallet_configs %} <li>{{ config }}</li> {% endfor %} </ul>
+                 {% else %}
+                     <p>Enter your shipment details to see the results.</p>
+                 {% endif %}
+            </div>
+
+            <div class="profiles-section">
+                <h2>Saved Profiles</h2>
+                <ul id="profile-list" class="profile-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputIds = [ 'total_cartons', 'carton_weight', 'carton_l', 'carton_w', 'carton_h', 'pallet_l', 'pallet_w', 'pallet_h', 'max_pallet_h' ];
+        
+        function generateShareLink() {
+            const params = new URLSearchParams();
+            params.append('shipment_type', document.querySelector('input[name="shipment_type"]:checked').value);
+            inputIds.forEach(id => {
+                const element = document.getElementById(id);
+                if (element.value) { params.append(id, element.value); }
+            });
+            
+            // CHANGE 2: The URL now points to the root path "/"
+            const shareUrl = window.location.origin + window.location.pathname + '?' + params.toString();
+            
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                const shareButton = document.getElementById('btn-share');
+                shareButton.textContent = 'Link Copied!';
+                setTimeout(() => { shareButton.textContent = 'Copy Shareable Link'; }, 2000);
+            }, () => { alert('Failed to copy link.'); });
+        }
+
+        // --- All other JavaScript functions are unchanged ---
+        function loadFromURL() { /* ... */ }
+        function togglePalletFields() { /* ... */ }
+        function getProfiles() { /* ... */ }
+        function saveProfiles(profiles) { /* ... */ }
+        function renderProfiles() { /* ... */ }
+        function toggleSaveUI() { /* ... */ }
+        function saveProfile() { /* ... */ }
+        function loadProfile(profileName) { /* ... */ }
+        function deleteProfile(profileName) { /* ... */ }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const loadedFromUrl = loadFromURL();
+            if (!loadedFromUrl) {
+                // You can add back the "load last inputs from local storage" functionality here if desired
+            }
+            renderProfiles();
+        });
+
+        // Pasting the unchanged JS functions for completeness
+        function togglePalletFields() { const p = document.getElementById('pallet-fields'); p.style.display = document.getElementById('type-palletized').checked ? 'block' : 'none'; }
+        function getProfiles() { return JSON.parse(localStorage.getItem('conTetrisProfiles') || '[]'); }
+        function saveProfiles(p) { localStorage.setItem('conTetrisProfiles', JSON.stringify(p)); }
+        function renderProfiles() { const p = getProfiles(); const pl = document.getElementById('profile-list'); pl.innerHTML = ''; if (p.length === 0) { pl.innerHTML = '<p>No saved profiles yet.</p>'; return; } p.forEach(pf => { const li = document.createElement('li'); li.className = 'profile-item'; li.innerHTML = `<span>${pf.name}</span><div><button class="btn-load" onclick="loadProfile('${pf.name}')">Load</button><button class="btn-delete" onclick="deleteProfile('${pf.name}')">Delete</button></div>`; pl.appendChild(li); }); }
+        function toggleSaveUI() { const sc = document.getElementById('save-container'); sc.style.display = sc.style.display === 'none' ? 'block' : 'none'; }
+        function saveProfile() { const pn = document.getElementById('profile_name').value.trim(); if (!pn) { alert('Please enter a name.'); return; } const i = {}; i.shipment_type = document.querySelector('input[name="shipment_type"]:checked').value; inputIds.forEach(id => { i[id] = document.getElementById(id).value; }); let ps = getProfiles(); const ei = ps.findIndex(p => p.name === pn); if (ei > -1) { if (confirm(`Overwrite "${pn}"?`)) { ps[ei].inputs = i; } else { return; } } else { ps.push({ name: pn, inputs: i }); } saveProfiles(ps); renderProfiles(); toggleSaveUI(); document.getElementById('profile_name').value = ''; }
+        function loadProfile(pn) { const p = getProfiles().find(p => p.name === pn); if (p) { const i = p.inputs; if (i.s_type === 'f') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; } inputIds.forEach(id => { if (i[id]) { document.getElementById(id).value = i[id]; } }); togglePalletFields(); } }
+        function deleteProfile(pn) { if (confirm(`Delete "${pn}"?`)) { let p = getProfiles().filter(p => p.name !== pn); saveProfiles(p); renderProfiles(); } }
+        function loadFromURL() { const p = new URLSearchParams(window.location.search); if (p.has('total_cartons')) { if (p.get('shipment_type') === 'floor_loaded') { document.getElementById('type-floor').checked = true; } else { document.getElementById('type-palletized').checked = true; } inputIds.forEach(id => { if (p.has(id)) { document.getElementById(id).value = p.get(id); } }); togglePalletFields(); return true; } return false; }
+    </script>
+</body>
+</html>
