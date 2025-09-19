@@ -1,8 +1,8 @@
 # ConTetris 🧩
 
-![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)
-![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask)
-![License](https://img.shields.io/badge/License-MIT-green)
+[![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://www.python.org) 
+[![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com/) 
+[![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 
 **ConTetris** is a simple web-based logistics calculator designed to solve the common puzzle of optimally loading cargo into shipping containers. 
@@ -85,7 +85,7 @@ To run ConTetris on your own machine? It's easy to get started.
 
 This project was built to solve a real-world problem. Your input can make it even better!
 
-* **Got an idea or found a bug ?** Please [**open an issue**](https://github.com/ToddE/ConTetris/issues) on GitHub. We'd love to hear your feedback on new features or improvements.
+* **Got an idea or found a bug ?** Please [**open an issue**](https://github.com/ToddE/ConTetris/issues) on GitHub. We'd appreciate your feedback on new features or improvements.
 
 * **Want to contribute code?** We welcome co-development support! Feel free to fork the repository, make your changes, and submit a pull request.
 
