@@ -1,0 +1,31 @@
+name: Deploy to Render
+
+# This workflow runs ONLY when you push a new tag starting with "v"
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get Version from Tag
+        run: echo "APP_VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+
+      - name: Deploy to Render
+        # This step uses your Render Deploy Hook URL to trigger a new build.
+        # It passes the version number to Render's environment.
+        run: |
+          curl -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -d '{
+              "clearCache": "clear"
+            }' \
+            "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys"
+        env:
+          APP_VERSION: ${{ env.APP_VERSION }}

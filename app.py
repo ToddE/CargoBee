@@ -1,7 +1,12 @@
 import math
 from flask import Flask, render_template, request
+import os 
 
 app = Flask(__name__)
+
+# ---Read version from an environment variable ---
+# Defaults to '1.0.0' if the variable isn't set (for local development)
+APP_VERSION = os.getenv('APP_VERSION', '0.0.1-local')
 
 # Constants
 ROAD_WEIGHT_LIMIT_KG = 19950 
@@ -155,12 +160,13 @@ def home():
             else:
                 final_results['weight_status'] = "OK"
 
-            return render_template('index.html', containers=CONTAINERS, results=final_results, form_inputs=form_inputs)
+            return render_template('index.html', containers=CONTAINERS, results=final_results, form_inputs=form_inputs, version=APP_VERSION)
 
         except Exception as e:
-            return render_template('index.html', containers=CONTAINERS, error=f"Calculation Error: {e}", form_inputs=form_inputs)
+            return render_template('index.html', containers=CONTAINERS, error=f"Calculation Error: {e}", form_inputs=form_inputs, version=APP_VERSION)
 
-    return render_template('index.html', containers=CONTAINERS, form_inputs=request.args)
+    return render_template('index.html', containers=CONTAINERS, form_inputs=request.args, version=APP_VERSION)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
