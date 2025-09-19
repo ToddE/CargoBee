@@ -2,8 +2,11 @@
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python) ![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask) ![License](https://img.shields.io/badge/License-MIT-green)
 
+
 **ConTetris** is a simple web-based logistics calculator designed to solve the common puzzle of optimally loading cargo into shipping containers. 
+
 It accounts for **cargo weight**, **warehouse constraints**, and **multi-container shipments**, providing an actionable loading plan beyond simple volume calculations.
+
 ---
 
 ## ✨ Live Demo
@@ -25,10 +28,8 @@ You can try out the live version of ConTetris right here:
 
 ---
 
-## ## How to Use the App
-
+## How to Use ConTetris
 ConTetris is designed for both quick estimates and detailed planning.
-
 
 
 1.  **Choose Shipment Type:** Select **Palletized** or **Floor-Loaded**. The required input fields will adjust automatically.
@@ -44,23 +45,12 @@ ConTetris is designed for both quick estimates and detailed planning.
     * Click **"Save to Browser"** to name and store the current inputs as a profile for future use.
 
 ---
-
-## 🤝 Contribute & Get Involved
-
-This project was built to solve a real-world problem. Your input can make it even better!
-
-* **Got an idea or found a bug?** Please [**open an issue**](https://github.com/your-username/contetris/issues) on GitHub. We'd love to hear your feedback on new features or improvements.
-* **Want to contribute code?** We welcome co-development support! Feel free to fork the repository, make your changes, and submit a pull request.
-
----
-
 ## Run and Develop Locally
-
 To run ConTetris on your own machine? It's easy to get started.
 
 1.  **Clone the Repository:**
     ```bash
-    git clone [https://github.com/your-username/contetris.git](https://github.com/your-username/contetris.git)
+    git clone [https://github.com/ToddE/contetris.git](https://github.com/ToddE/contetris.git)
     cd contetris
     ```
 2.  **Create and Activate a Virtual Environment:**
@@ -78,3 +68,14 @@ To run ConTetris on your own machine? It's easy to get started.
     python app.py
     ```
 5.  Open your browser and go to `http://127.0.0.1:5000` or `http://localhost:5000`
+
+---
+
+## Contribute & Get Involved
+
+This project was built to solve a real-world problem. Your input can make it even better!
+
+* **Got an idea or found a bug?** Please [**open an issue**](https://github.com/ToddE/ConTetris/issues) on GitHub. We'd love to hear your feedback on new features or improvements.
+* **Want to contribute code?** We welcome co-development support! Feel free to fork the repository, make your changes, and submit a pull request.
+
+---
