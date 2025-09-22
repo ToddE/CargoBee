@@ -15,7 +15,7 @@ It accounts for **cargo weight**, **warehouse constraints**, and **multi-contain
 
 You can try out the live version of ConTetris right here:
 
-➡️ **[https://contetris.onrender.com](https://contetris.onrender.com)** *(Link is hosted on free tier so may take up to a minute to redeploy)*
+➡️ **[https://contetris.onrender.com](https://contetris.onrender.com)** *(Link is hosted on free tier so may take up to a minute to load if it hasn't loaded recently)*
 
 ---
 

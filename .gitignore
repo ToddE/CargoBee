@@ -11,3 +11,6 @@ __pycache__/
 
 # OS-specific files
 .DS_Store
+
+# Other stuff
+*.old

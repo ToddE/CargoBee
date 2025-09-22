@@ -1,14 +1,12 @@
 import math
 from flask import Flask, render_template, request
-import os 
+import os
+from collections import Counter
 
 app = Flask(__name__)
 
-# ---Read version from an environment variable ---
-# Defaults to '1.0.0' if the variable isn't set (for local development)
-APP_VERSION = os.getenv('APP_VERSION', '0.0.1-local')
-
-# Constants
+# --- Constants ---
+APP_VERSION = os.getenv('APP_VERSION', '0.1.250919f')
 ROAD_WEIGHT_LIMIT_KG = 19950 
 CONTAINERS = {
     '40ft_HC': {'name': "40' High Cube", 'length': 1203, 'width': 235, 'height': 269},
@@ -16,30 +14,49 @@ CONTAINERS = {
     '20ft': {'name': "20' Standard", 'length': 590, 'width': 235, 'height': 239}
 }
 
-def calculate_floor_slots(container, pallet_l, pallet_w):
-    slots_v1 = math.floor(container['length'] / pallet_l) * math.floor(container['width'] / pallet_w)
-    slots_v2 = math.floor(container['length'] / pallet_w) * math.floor(container['width'] / pallet_l)
-    return max(slots_v1, slots_v2)
+# --- Helper function to simulate loading pallets into a single container ---
+def simulate_single_container_load(container, pallet_inventory, pallet_configs):
+    pallets_to_load = pallet_inventory.copy()
+    floor_slots = max(math.floor(container['length']/pallet_configs['l']) * math.floor(container['width']/pallet_configs['w']), math.floor(container['length']/pallet_configs['w']) * math.floor(container['width']/pallet_configs['l']))
+    
+    pallets_that_fit = []
+    
+    for _ in range(floor_slots):
+        remaining_h = container['height']
+        while True:
+            best_pallet_to_add = None
+            for p_type in sorted(pallets_to_load.keys(), key=lambda k: pallet_configs.get(k, {}).get('height', 0), reverse=True):
+                if pallets_to_load.get(p_type, 0) > 0 and pallet_configs.get(p_type, {}).get('height', 0) <= remaining_h:
+                    best_pallet_to_add = p_type
+                    break
+            
+            if best_pallet_to_add:
+                pallets_that_fit.append(best_pallet_to_add)
+                pallets_to_load[best_pallet_to_add] -= 1
+                remaining_h -= pallet_configs[best_pallet_to_add]['height']
+            else:
+                break
+                
+    return pallets_that_fit
 
+# --- Main Application Route ---
 @app.route('/', methods=['GET', 'POST'])
 def home():
     form_inputs = request.form.copy() if request.method == 'POST' else request.args.copy()
-    
+    context = {'containers': CONTAINERS, 'form_inputs': form_inputs, 'version': APP_VERSION, 'road_weight_limit': ROAD_WEIGHT_LIMIT_KG}
+
     if request.method == 'POST':
         try:
-            # --- Get All Inputs ---
             shipment_type = form_inputs.get('shipment_type')
             total_cartons = int(form_inputs['total_cartons'])
             carton_l, carton_w, carton_h = float(form_inputs['carton_l']), float(form_inputs['carton_w']), float(form_inputs['carton_h'])
             carton_weight = float(form_inputs['carton_weight'])
             
             final_results = {}
+            recommended_containers = {}
 
-            # --- Floor-Loaded Calculation ---
             if shipment_type == 'floor_loaded':
-                # (This logic is unchanged and correct)
                 cartons_left_to_ship = total_cartons
-                recommended_containers = {}
                 while cartons_left_to_ship > 0:
                     found_fit = False
                     for key, container in reversed(list(CONTAINERS.items())):
@@ -62,111 +79,112 @@ def home():
                         recommended_containers[largest_key] = recommended_containers.get(largest_key, 0) + 1
                         cartons_left_to_ship -= total_fit
                 
-                final_recommendation_str = " & ".join([f"{count} x {CONTAINERS[key]['name']}" for key, count in recommended_containers.items()])
+                final_recommendation_str = " & ".join([f"{count} x {CONTAINERS[key]['name']}" for key, count in sorted(recommended_containers.items(), reverse=True)])
                 final_results = {'recommendation': final_recommendation_str, 'pallet_configs': [f"Total cartons ({total_cartons}) will be floor-loaded."]}
-
-            # --- Palletized Calculation (New Robust Logic) ---
-            else:
+            
+            else: # Palletized
                 pallet_l, pallet_w, pallet_h = float(form_inputs['pallet_l']), float(form_inputs['pallet_w']), float(form_inputs['pallet_h'])
                 max_pallet_h = float(form_inputs['max_pallet_h'])
+                
                 cartons_per_layer = max(math.floor(pallet_l / carton_l) * math.floor(pallet_w / carton_w), math.floor(pallet_l / carton_w) * math.floor(pallet_w / carton_l))
                 if cartons_per_layer == 0: raise ValueError("Carton is larger than the pallet base.")
-                
+
                 layers_A = math.floor((max_pallet_h - pallet_h) / carton_h)
                 if layers_A <= 0: raise ValueError("Cannot build a base pallet within warehouse height limit.")
-                cartons_A = layers_A * cartons_per_layer
+                pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2)} }
                 
-                final_recommendation_str = "Requires multiple containers."
+                temp_container = CONTAINERS[list(CONTAINERS.keys())[0]]
+                remaining_space = temp_container['height'] - pallet_configs['Base']['height']
+                layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
+                if layers_B > 0:
+                    pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2)}
+
+                cartons_to_assign = total_cartons
+                total_pallet_inventory = {}
+                if 'Topper' in pallet_configs:
+                    cartons_per_stack = pallet_configs['Base']['cartons'] + pallet_configs['Topper']['cartons']
+                    num_stacks = cartons_to_assign // cartons_per_stack
+                    if num_stacks > 0:
+                        total_pallet_inventory['Base'] = total_pallet_inventory.get('Base', 0) + num_stacks
+                        total_pallet_inventory['Topper'] = total_pallet_inventory.get('Topper', 0) + num_stacks
+                        cartons_to_assign %= cartons_per_stack
+                num_base_only = cartons_to_assign // pallet_configs['Base']['cartons']
+                if num_base_only > 0:
+                    total_pallet_inventory['Base'] = total_pallet_inventory.get('Base', 0) + num_base_only
+                    cartons_to_assign %= pallet_configs['Base']['cartons']
+                if cartons_to_assign > 0:
+                    layers_remnant = math.ceil(cartons_to_assign / cartons_per_layer)
+                    pallet_configs['Remnant'] = {'layers': layers_remnant, 'cartons': cartons_to_assign, 'height': round((layers_remnant * carton_h) + pallet_h, 2)}
+                    total_pallet_inventory['Remnant'] = 1
                 
-                for key, container in CONTAINERS.items():
-                    floor_slots = calculate_floor_slots(container, pallet_l, pallet_w)
-                    
-                    # Define Topper Pallet based on this specific container
-                    remaining_space = container['height'] - ((layers_A * carton_h) + pallet_h)
-                    layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
-                    cartons_B = layers_B * cartons_per_layer
+                pallets_left_to_ship = total_pallet_inventory.copy()
+                container_manifests = []
+                while sum(pallets_left_to_ship.values()) > 0:
+                    best_fit_container = None
+                    for key, container in reversed(list(CONTAINERS.items())):
+                        pallets_that_fit = simulate_single_container_load(container, pallets_left_to_ship, pallet_configs)
+                        if len(pallets_that_fit) == sum(pallets_left_to_ship.values()):
+                            best_fit_container = key
+                            break
+                    if best_fit_container:
+                        manifest = Counter(pallets_left_to_ship.keys())
+                        container_manifests.append({'key': best_fit_container, 'manifest': dict(manifest)})
+                        pallets_left_to_ship = {}
+                    else:
+                        largest_key = list(CONTAINERS.keys())[0]
+                        largest_container = CONTAINERS[largest_key]
+                        pallets_packed_this_round = simulate_single_container_load(largest_container, pallets_left_to_ship, pallet_configs)
+                        if not pallets_packed_this_round: raise Exception("Shipment is impossible; remaining pallets do not fit.")
+                        manifest = Counter(pallets_packed_this_round)
+                        container_manifests.append({'key': largest_key, 'manifest': dict(manifest)})
+                        for p_type, count in manifest.items():
+                            pallets_left_to_ship[p_type] -= count
 
-                    # Calculate the number of each stack type we can make
-                    cartons_to_load = total_cartons
-                    num_stacks = 0
-                    num_base_only = 0
-                    
-                    if layers_B > 0:
-                        num_stacks = cartons_to_load // (cartons_A + cartons_B)
-                        cartons_to_load %= (cartons_A + cartons_B)
-                    
-                    num_base_only = cartons_to_load // cartons_A
-                    cartons_to_load %= cartons_A
-                    
-                    num_remnant = 1 if cartons_to_load > 0 else 0
-                    
-                    # Check if this configuration fits in the container's floor space
-                    if (num_stacks + num_base_only + num_remnant) <= floor_slots:
-                        final_recommendation_str = f"1 x {container['name']}"
-                        
-                        # Build summary for display
-                        pallet_config_summary = []
-                        total_pallets = 0
-                        
-                        height_A = round((layers_A * carton_h) + pallet_h, 2)
-                        pallet_config_summary.append(f"{num_stacks + num_base_only} pallet(s) with {layers_A} layers ({height_A} cm) holding {cartons_A} cartons")
-                        total_pallets += num_stacks + num_base_only
-                        
-                        if num_stacks > 0 and layers_B > 0:
-                            height_B = round((layers_B * carton_h) + pallet_h, 2)
-                            pallet_config_summary.append(f"{num_stacks} pallet(s) with {layers_B} layers ({height_B} cm) holding {cartons_B} cartons")
-                            total_pallets += num_stacks
-                            
-                        if num_remnant > 0:
-                            layers_remnant = math.ceil(cartons_to_load / cartons_per_layer)
-                            height_remnant = round((layers_remnant * carton_h) + pallet_h, 2)
-                            pallet_config_summary.append(f"1 pallet(s) with {layers_remnant} layers ({height_remnant} cm) holding {cartons_to_load} cartons")
-                            total_pallets += 1
-                        
-                        final_results = {'total_pallets': total_pallets, 'pallet_configs': pallet_config_summary, 'recommendation': final_recommendation_str}
-                        break # Found the best single container, stop searching
+                # Format Results with per-container weight
+                total_pallets_built = sum(total_pallet_inventory.values())
+                container_counts = Counter(c['key'] for c in container_manifests)
+                final_recommendation_str = " & ".join([f"{count} x {CONTAINERS[key]['name']}" for key, count in sorted(container_counts.items(), reverse=True)])
                 
-                # If the loop finishes, no single container was found. This part needs multi-container logic, which is very complex.
-                # For now, we will just show the total pallet breakdown.
-                if not final_results:
-                    num_base_pallets = total_cartons // cartons_A
-                    cartons_left = total_cartons % cartons_A
-                    num_remnant_pallets = 1 if cartons_left > 0 else 0
-                    total_pallets = num_base_pallets + num_remnant_pallets
+                detailed_configs = []
+                is_overweight = False
+                for i, c in enumerate(container_manifests):
+                    container_weight = 0
+                    for p_type, count in c['manifest'].items():
+                        container_weight += pallet_configs[p_type]['cartons'] * carton_weight
                     
-                    pallet_config_summary = []
-                    height_A = round((layers_A * carton_h) + pallet_h, 2)
-                    pallet_config_summary.append(f"{num_base_pallets} pallet(s) with {layers_A} layers ({height_A} cm) holding {cartons_A} cartons")
-                    if num_remnant_pallets > 0:
-                        layers_remnant = math.ceil(cartons_left / cartons_per_layer)
-                        height_remnant = round((layers_remnant * carton_h) + pallet_h, 2)
-                        pallet_config_summary.append(f"1 pallet(s) with {layers_remnant} layers ({height_remnant} cm) holding {cartons_left} cartons")
+                    if container_weight > ROAD_WEIGHT_LIMIT_KG:
+                        is_overweight = True
                     
-                    # A simple multi-container estimate
-                    slots_per_40hc = calculate_floor_slots(CONTAINERS['40ft_HC'], pallet_l, pallet_w)
-                    num_containers_needed = math.ceil(total_pallets / slots_per_40hc)
-                    final_recommendation_str = f"Estimated {num_containers_needed} x 40' High Cube (or equivalent)"
+                    container_detail = {
+                        'name': f"Container {i+1}: {CONTAINERS[c['key']]['name']}",
+                        'weight': round(container_weight, 2),
+                        'items': []
+                    }
+                    for p_type, count in sorted(c['manifest'].items(), key=lambda item: pallet_configs[item[0]]['height'], reverse=True):
+                        conf = pallet_configs[p_type]
+                        desc = f"{count} pallet(s) with {conf['layers']} layers ({conf['height']} cm) holding {conf['cartons']} cartons"
+                        container_detail['items'].append(desc)
+                    detailed_configs.append(container_detail)
 
-                    final_results = {'total_pallets': total_pallets, 'pallet_configs': pallet_config_summary, 'recommendation': final_recommendation_str}
-
-
+                final_results = {'total_pallets': total_pallets_built, 'pallet_configs': detailed_configs, 'recommendation': final_recommendation_str}
+            
+            # Global Weight Check
             total_cargo_weight = total_cartons * carton_weight
-            # Simple weight check for now, can be expanded for multi-container
-            weight_limit = ROAD_WEIGHT_LIMIT_KG
             final_results['total_weight_kg'] = round(total_cargo_weight, 2)
-            if total_cargo_weight > weight_limit:
-                final_results['weight_status'] = f"OVERWEIGHT by {round(total_cargo_weight - weight_limit, 2)} kg per container"
-                final_results['recommendation'] += " (WARNING: Overweight!)"
+            if 'total_pallets' in final_results and is_overweight:
+                final_results['weight_status'] = "OVERWEIGHT"
+                final_results['recommendation'] += " (WARNING: At least one container is overweight!)"
             else:
                 final_results['weight_status'] = "OK"
 
-            return render_template('index.html', containers=CONTAINERS, results=final_results, form_inputs=form_inputs, version=APP_VERSION)
+            context['results'] = final_results
+            return render_template('index.html', **context)
 
         except Exception as e:
-            return render_template('index.html', containers=CONTAINERS, error=f"Calculation Error: {e}", form_inputs=form_inputs, version=APP_VERSION)
+            context['error'] = f"Calculation Error: {e}"
+            return render_template('index.html', **context)
 
-    return render_template('index.html', containers=CONTAINERS, form_inputs=request.args, version=APP_VERSION)
-
+    return render_template('index.html', **context)
 
 if __name__ == '__main__':
     app.run(debug=True)
