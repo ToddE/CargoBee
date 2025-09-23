@@ -59,9 +59,9 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700">Carton Dimensions (cm)</label>
                         <div class="grid grid-cols-3 gap-2 mt-1">
-                            <input id="carton_l" type="number" name="carton_l" placeholder="L" value="{{ form_inputs.carton_l | default('32') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <input id="carton_w" type="number" name="carton_w" placeholder="W" value="{{ form_inputs.carton_w | default('20.5') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
-                            <input id="carton_h" type="number" name="carton_h" placeholder="H" value="{{ form_inputs.carton_h | default('31.8') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <input id="carton_l" type="number" name="carton_l" placeholder="L" value="{{ form_inputs.carton_l | default('30') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <input id="carton_w" type="number" name="carton_w" placeholder="W" value="{{ form_inputs.carton_w | default('30') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                            <input id="carton_h" type="number" name="carton_h" placeholder="H" value="{{ form_inputs.carton_h | default('30') }}" step="any" required class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
                     </div>
                     <div id="pallet-fields" class="space-y-4">
@@ -72,6 +72,10 @@
                                 <input id="pallet_w" type="number" name="pallet_w" value="{{ form_inputs.pallet_w | default('100') }}" step="any" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                                 <input id="pallet_h" type="number" name="pallet_h" value="{{ form_inputs.pallet_h | default('15') }}" step="any" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                             </div>
+                        </div>
+                        <div>
+                            <label for="pallet_weight" class="block text-sm font-medium text-gray-700">Estimated Pallet Weight (kg)</label>
+                            <input id="pallet_weight" type="number" name="pallet_weight" value="{{ form_inputs.pallet_weight | default('20') }}" step="any" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                         </div>
                         <div>
                             <label for="max_pallet_h" class="block text-sm font-medium text-gray-700 flex items-center">
@@ -118,8 +122,8 @@
                                             <h4 class="font-semibold text-gray-700">{{ container_data.name }}</h4>
                                             <p class="text-sm text-gray-600">Cargo Weight: {{ container_data.weight }} kg</p>
                                             <ul class="list-disc list-inside text-gray-700 mt-1 text-sm">
-                                                {% for key, item_description in container_data.items() %}
-                                                    <li>{{ item_description }}</li>
+                                                {% for item in container_data['items'] %}
+                                                    <li>{{ item }}</li>
                                                 {% endfor %}
                                             </ul>
                                         </div>
