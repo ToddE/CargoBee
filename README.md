@@ -2,6 +2,7 @@
 [![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com/) 
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
+vibe-coded with Gemini and CoPilot
 
 # <img src="https://github.com/ToddE/CargoBee/blob/main/static/images/cargobeelogo2.svg" height="100px"> CargoBee
 CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
