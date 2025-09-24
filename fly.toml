@@ -1,0 +1,32 @@
+# fly.toml file generated for contetris
+
+app = "contetris"
+primary_region = "iad" # Ashburn, VA (US East). Change if needed.
+
+# This section tells Fly.io to use your Dockerfile to build the app,
+# which is more reliable than the automatic buildpacks.
+[build]
+  builder = "dockerfile"
+
+# This section defines how web traffic reaches your application.
+[http_service]
+  internal_port = 8080 # The port your app listens on inside the container
+  force_https = true   # Automatically redirect HTTP to HTTPS
+  auto_stop_machines = true  # Stop machines when idle to save costs (for free tier)
+  auto_start_machines = true # Start machines automatically on new requests
+  min_machines_running = 0   # Allows the app to scale to zero (key for free tier)
+  
+  # This section defines health checks to ensure your app is running.
+  [[http_service.checks]]
+    interval = "10s"
+    timeout = "2s"
+    grace_period = "5s"
+    method = "GET"
+    path = "/"
+
+# This defines the size of the server (virtual machine) your app will run on.
+# The 'shared-cpu-1x' with 256MB memory is eligible for the free tier.
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256

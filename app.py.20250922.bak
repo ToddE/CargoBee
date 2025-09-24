@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '0.1.250924a')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ROAD_WEIGHT_LIMIT_KG = 19950 
 CONTAINERS = {
     '40ft_HC': {'name': "40' High Cube", 'length': 1203, 'width': 235, 'height': 269},
@@ -51,7 +51,6 @@ def home():
             total_cartons = int(form_inputs['total_cartons'])
             carton_l, carton_w, carton_h = float(form_inputs['carton_l']), float(form_inputs['carton_w']), float(form_inputs['carton_h'])
             carton_weight = float(form_inputs['carton_weight'])
-            pallet_weight = float(form_inputs.get('pallet_weight', 0))
             
             final_results = {}
             recommended_containers = {}
@@ -92,13 +91,13 @@ def home():
 
                 layers_A = math.floor((max_pallet_h - pallet_h) / carton_h)
                 if layers_A <= 0: raise ValueError("Cannot build a base pallet within warehouse height limit.")
-                pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
+                pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2)} }
                 
                 temp_container = CONTAINERS[list(CONTAINERS.keys())[0]]
                 remaining_space = temp_container['height'] - pallet_configs['Base']['height']
                 layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
                 if layers_B > 0:
-                    pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight}
+                    pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2)}
 
                 cartons_to_assign = total_cartons
                 total_pallet_inventory = {}
@@ -115,7 +114,7 @@ def home():
                     cartons_to_assign %= pallet_configs['Base']['cartons']
                 if cartons_to_assign > 0:
                     layers_remnant = math.ceil(cartons_to_assign / cartons_per_layer)
-                    pallet_configs['Remnant'] = {'layers': layers_remnant, 'cartons': cartons_to_assign, 'height': round((layers_remnant * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight}
+                    pallet_configs['Remnant'] = {'layers': layers_remnant, 'cartons': cartons_to_assign, 'height': round((layers_remnant * carton_h) + pallet_h, 2)}
                     total_pallet_inventory['Remnant'] = 1
                 
                 pallets_left_to_ship = total_pallet_inventory.copy()
@@ -124,24 +123,22 @@ def home():
                     best_fit_container = None
                     for key, container in reversed(list(CONTAINERS.items())):
                         pallets_that_fit = simulate_single_container_load(container, pallets_left_to_ship, pallet_configs)
-                        # Count how many pallets of each type were packed in this container
-                        manifest = Counter(pallets_that_fit)
-                        if sum(manifest.values()) == sum(pallets_left_to_ship.values()):
+                        if len(pallets_that_fit) == sum(pallets_left_to_ship.values()):
                             best_fit_container = key
-                            container_manifests.append({'key': best_fit_container, 'manifest': dict(manifest)})
-                            pallets_left_to_ship = {ptype: pallets_left_to_ship[ptype] - manifest.get(ptype, 0) for ptype in pallets_left_to_ship}
-                            # Remove any pallet types with zero left
-                            pallets_left_to_ship = {ptype: count for ptype, count in pallets_left_to_ship.items() if count > 0}
                             break
-                    if not best_fit_container:
+                    if best_fit_container:
+                        manifest = Counter(pallets_left_to_ship.keys())
+                        container_manifests.append({'key': best_fit_container, 'manifest': dict(manifest)})
+                        pallets_left_to_ship = {}
+                    else:
                         largest_key = list(CONTAINERS.keys())[0]
                         largest_container = CONTAINERS[largest_key]
                         pallets_packed_this_round = simulate_single_container_load(largest_container, pallets_left_to_ship, pallet_configs)
+                        if not pallets_packed_this_round: raise Exception("Shipment is impossible; remaining pallets do not fit.")
                         manifest = Counter(pallets_packed_this_round)
                         container_manifests.append({'key': largest_key, 'manifest': dict(manifest)})
                         for p_type, count in manifest.items():
                             pallets_left_to_ship[p_type] -= count
-                        pallets_left_to_ship = {ptype: count for ptype, count in pallets_left_to_ship.items() if count > 0}
 
                 # Format Results with per-container weight
                 total_pallets_built = sum(total_pallet_inventory.values())
@@ -152,25 +149,27 @@ def home():
                 is_overweight = False
                 for i, c in enumerate(container_manifests):
                     container_weight = 0
+                    for p_type, count in c['manifest'].items():
+                        container_weight += pallet_configs[p_type]['cartons'] * carton_weight
+                    
+                    if container_weight > ROAD_WEIGHT_LIMIT_KG:
+                        is_overweight = True
+                    
                     container_detail = {
                         'name': f"Container {i+1}: {CONTAINERS[c['key']]['name']}",
-                        'weight': 0,
+                        'weight': round(container_weight, 2),
                         'items': []
                     }
                     for p_type, count in sorted(c['manifest'].items(), key=lambda item: pallet_configs[item[0]]['height'], reverse=True):
                         conf = pallet_configs[p_type]
-                        container_weight += count * (conf['cartons'] * carton_weight + conf.get('pallet_weight', 0))
-                        desc = f"{count} pallet(s) with {conf['layers']} layers ({conf['height']} cm) holding {conf['cartons']} cartons each, pallet weight: {conf.get('pallet_weight', 0)} kg each"
+                        desc = f"{count} pallet(s) with {conf['layers']} layers ({conf['height']} cm) holding {conf['cartons']} cartons"
                         container_detail['items'].append(desc)
-                    container_detail['weight'] = round(container_weight, 2)
-                    if container_weight > ROAD_WEIGHT_LIMIT_KG:
-                        is_overweight = True
                     detailed_configs.append(container_detail)
 
                 final_results = {'total_pallets': total_pallets_built, 'pallet_configs': detailed_configs, 'recommendation': final_recommendation_str}
             
             # Global Weight Check
-            total_cargo_weight = total_cartons * carton_weight + sum(total_pallet_inventory.values()) * pallet_weight
+            total_cargo_weight = total_cartons * carton_weight
             final_results['total_weight_kg'] = round(total_cargo_weight, 2)
             if 'total_pallets' in final_results and is_overweight:
                 final_results['weight_status'] = "OVERWEIGHT"
