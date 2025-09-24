@@ -5,8 +5,7 @@ primary_region = "iad" # Ashburn, VA (US East). Change if needed.
 
 # This section tells Fly.io to use your Dockerfile to build the app,
 # which is more reliable than the automatic buildpacks.
-[build]
-  builder = "dockerfile"
+
 
 # This section defines how web traffic reaches your application.
 [http_service]
