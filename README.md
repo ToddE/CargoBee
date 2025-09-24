@@ -4,7 +4,7 @@
 
 
 
-# ![CargoBee Logo](https://github.com/CargoBee/static/cargobeelogo2.svg) CargoBee
+# ![CargoBee Logo](https://github.com/ToddE/CargoBee/static/cargobeelogo2.svg) CargoBee
 CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
 
 ### [**➡️ Go to the Live Application**](https://CargoBee.fly.dev)
