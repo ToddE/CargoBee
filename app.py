@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '0.1.250919f')
+APP_VERSION = os.getenv('APP_VERSION', '0.1.250924a')
 ROAD_WEIGHT_LIMIT_KG = 19950 
 CONTAINERS = {
     '40ft_HC': {'name': "40' High Cube", 'length': 1203, 'width': 235, 'height': 269},
