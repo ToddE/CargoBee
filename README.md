@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 
-# <img src="https://github.com/ToddE/CargoBee/static/images/cargobeelogo2.svg" height='100px'> CargoBee
+# <img src="https://github.com/ToddE/CargoBee/blob/main/static/images/cargobeelogo2.svg" height="100px"> CargoBee
 CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
 
 ### [**➡️ Go to the Live Application**](https://CargoBee.fly.dev)
