@@ -1,6 +1,6 @@
-# fly.toml file generated for contetris
+# fly.toml file generated for CargoBee
 
-app = "contetris"
+app = "CargoBee"
 primary_region = "iad" # Ashburn, VA (US East). Change if needed.
 
 # This section tells Fly.io to use your Dockerfile to build the app,

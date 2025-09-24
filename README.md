@@ -1,94 +1,61 @@
-# ConTetris 🧩
-
 [![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://www.python.org) 
 [![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com/) 
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 
-**ConTetris** is a simple web-based logistics calculator designed to solve the common puzzle of optimally loading cargo into shipping containers. 
 
-It accounts for **cargo weight**, **warehouse constraints**, and **multi-container shipments**, providing an actionable loading plan beyond simple volume calculations.
+# ![CargoBee Logo](https://github.com/CargoBee/static/cargobeelogo2.svg) CargoBee
+CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
 
----
+### [**➡️ Go to the Live Application**](https://CargoBee.fly.dev)
 
-## ✨ Live Demo
+## **✨ Core Capabilities**
+CargoBee is a shipment planning assistant that provides a detailed and actionable loading plan.
 
-You can try out the live version of ConTetris right here:
+- **Multi-Container Planning:** Automatically calculates the total number of containers required for a large shipment and provides a detailed manifest for each one.
+- **Dual-Constraint Optimization:** Creates an intelligent mix of tall "Base Pallets" (to maximize warehouse height) and shorter "Topper Pallets" (for vertical stacking inside containers).
+- **Weight & Safety Compliance:** Calculates the total weight for each container—including pallets—and warns if the load exceeds standard road limits.
+- **Dynamic Pallet Configuration:** Determines the most efficient 2D layout of cartons on a pallet and the optimal number of layers for each distinct pallet type.
+- **Profile Management:** Save and load different shipment profiles directly in your browser using local storage for quick and repeatable calculations.
 
-➡️ **[https://contetris.onrender.com](https://contetris.onrender.com)** *(Link is hosted on free tier so may take up to a minute to load if it hasn't loaded recently)*
+## **🧠 How It Works: The Loading Strategy**
 
----
+The core of CargoBee is its ability to create two different types of pallets to solve the "Two Ceilings" problem—the conflict between the maximum pallet height in the warehouse versus the internal height of a shipping container.
 
-## Key Features
+1. **Base Pallets:** These are built to be as tall as possible without exceeding your specified **warehouse height limit**. They are the primary, most common pallet type for any given shipment.
+2. **Topper Pallets:** These are intentionally built shorter. Their height is calculated based on the space *remaining* above a Base Pallet inside a specific container, allowing for efficient double-stacking.
 
-* **Dual Shipment Modes:** Calculates optimal loads for both **Palletized** and **Floor-Loaded** cargo.
+The algorithm then fills containers by prioritizing the most space-efficient combinations first (full stacks of Base \+ Topper pallets), ensuring a dense and stable load.
 
-* **Intelligent Palletization:** For palletized shipments, it generates a mix of multi-height "Base" and "Topper" pallets to maximize cubic space while respecting warehouse height limits.
+## **🛠️ Technology Stack**
 
-* **Weight & Volume Aware:** Validates the final plan against both the container's physical volume and the practical **road weight limits** (~44,000 lbs / 19,950 kg) to prevent overweight shipments.
+CargoBee is built with a modern, reliable technology stack, ready for production.
 
-* **Multi-Container Logic:** If a shipment is too large for any single container, ConTetris provides a recommendation of multiple containers (e.g., "1 x 40' HC & 1 x 20' Standard").
+- **Backend:** Python 3.12 with the Flask web framework.
+- **Frontend:** Tailwind CSS for a clean, responsive user interface.
+- **WSGI Server:** Gunicorn for robust production performance.
+- **Containerization:** Docker, defined by the Dockerfile in this repository.
+- **Hosting:** Deployed on the Fly.io global application platform.
 
-* **Persistent Profiles:** Save multiple shipment configurations directly in your browser's local storage for quick recall.
+## **💻 Local Development**
 
-* **Shareable Calculations:** Generates a sharable URL that pre-populates the calculator with your exact inputs, making it easy to share over email or text.
+Want to run or contribute to CargoBee on your own machine? Follow these steps.
 
----
-
-## How to Use ConTetris
-ConTetris is designed for both quick estimates and detailed planning.
-
-
-1.  **Choose Shipment Type:** Select **Palletized** or **Floor-Loaded**. The required input fields will adjust automatically.
-
-2.  **Enter Shipment Details:**
-    * **Total Cartons & Weight:** The total number of cartons and the weight of a single carton.
-    * **Dimensions:** Provide dimensions for your cartons and, if applicable, your pallets and maximum warehouse stacking height.
-
-3.  **Calculate & Review:**
-    * Click **"Calculate Optimal Load"**. The results pane will display the most efficient combination of containers.
-    * Review the **Weight Status** to ensure your load is compliant with road limits.
-    * Check the **Configuration Details** for a breakdown of how many pallets to build or a confirmation of the floor load.
-
-4.  **Share or Save:**
-    * Click **"Copy Shareable Link"** to get a URL that you can send to colleagues.
-    * Click **"Save to Browser"** to name and store the current inputs as a profile for future use.
-
----
-## Run and Develop Locally
-To run ConTetris on your own machine? It's easy to get started.
-
-1.  **Clone the Repository:**
+1. **Clone the Repository:**  
+  ```bash
+  git clone \[https://github.com/your-username/CargoBee.git\](https://github.com/your-username/CargoBee.git)  
+  cd CargoBee
+  ```
+  
+2. **Create and Activate a Virtual Environment:**  
     ```bash
-    git clone [https://github.com/ToddE/contetris.git](https://github.com/ToddE/contetris.git)
-    cd contetris
-    ```
-2.  **Create and Activate a Virtual Environment:**
-    ```bash
-    # For Mac/Linux
-    python3 -m venv venv
-    source venv/bin/activate
-    ```
-3.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-4.  **Run the Application:**
-    ```bash
-    python app.py
-    ```
-5.  Open your browser and go to `http://127.0.0.1:5000` or `http://localhost:5000`
-
----
-
-## Contribute & Get Involved
-
-This project was built to solve a real-world problem. Your input can make it even better!
-
-* **Got an idea or found a bug ?** Please [**open an issue**](https://github.com/ToddE/ConTetris/issues) on GitHub. We'd appreciate your feedback on new features or improvements.
-
-* **Want to contribute code?** We welcome co-development support! Feel free to fork the repository, make your changes, and submit a pull request.
-
-
-
----
+  \# Ensure you have Python 3.12 installed  
+  python3 \-m venv venv  
+  source venv/bin/activate
+  ```
+  
+3. **Install Dependencies:**  
+  pip install \-r requirements.txt
+  
+4. **Run the Development Server:**  
+  python app.py

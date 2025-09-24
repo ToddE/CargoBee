@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '0.1.250924')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
 ROAD_WEIGHT_LIMIT_KG = 19950
 CONTAINER_DOOR_HEIGHT_LIMIT_CM = 258 # Max physical height for a pallet to fit through the door
 CONTAINERS = {
