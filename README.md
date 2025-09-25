@@ -14,6 +14,9 @@ CargoBee is a logistics tool focused on solving a critical challenge: optimally 
 ## Core Features
 CargoBee is a shipment planning assistant that provides a detailed and actionable loading plan.
 
+<img width="1252" height="929" alt="image" src="https://github.com/user-attachments/assets/971e0515-df34-462d-8201-3851903c3b52" />
+
+
 - **Multi-Container Planning:** Automatically calculates the total number of containers required for a large shipment and provides a detailed manifest for each one.
 
 - **Dual-Constraint Optimization:** Creates an intelligent mix of tall "Base Pallets" (to maximize warehouse height) and shorter "Topper Pallets" (for vertical stacking inside containers).
