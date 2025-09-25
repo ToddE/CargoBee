@@ -11,6 +11,11 @@ CargoBee is a logistics tool focused on solving a critical challenge: optimally 
 
 ### [**➡️ Go to the Live Application**](https://CargoBee.fly.dev)
 
+<p align="center" style="font-size: 0.5em">
+<img width="50%" alt="CargoBee Screenshot" src="https://github.com/user-attachments/assets/971e0515-df34-462d-8201-3851903c3b52" />
+<br/><sub>Screenshot of CargoBee v1.0.0Beta</sub>
+</p>
+
 ## Core Features
 CargoBee is a shipment planning assistant that provides a detailed and actionable loading plan.
 
