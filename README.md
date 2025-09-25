@@ -1,5 +1,7 @@
-[![Python](https://img.shields.io/badge/Python-3.x-blue?logo=python)](https://www.python.org) 
-[![Framework](https://img.shields.io/badge/Flask-3.x-black?logo=flask)](https://flask.palletsprojects.com/) 
+[![Python](https://img.shields.io/badge/Python-3.x-yellow?logo=python)](https://www.python.org) 
+[![Framework](https://img.shields.io/badge/Flask-3.x-blue?logo=flask)](https://flask.palletsprojects.com/) 
+[![Framework](https://img.shields.io/badge/Gunicorn-22.x-green?logo=gunicorn)](https://gunicorn.org/)
+[![AI Assistance](https://img.shields.io/badge/vibed_with_Gemini-2.5pro-black?logo=gemini)](https://gemini.google.com)
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 vibe-coded with Gemini and CoPilot
