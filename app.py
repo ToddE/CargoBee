@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '1.0.0Beta')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.2Beta')
 UMAMI_SCRIPT_URL = os.getenv('UMAMI_SCRIPT_URL')
 UMAMI_WEBSITE_ID = os.getenv('UMAMI_WEBSITE_ID')
 ROAD_WEIGHT_LIMIT_KG = 19950
