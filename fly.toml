@@ -1,31 +1,22 @@
-# fly.toml file generated for CargoBee
+# fly.toml app configuration file generated for cargobee on 2025-09-24T20:45:55Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app = "cargobee"
-primary_region = "iad" # Ashburn, VA (US East). Change if needed.
+app = 'cargobee'
+primary_region = 'iad'
 
-# This section tells Fly.io to use your Dockerfile to build the app,
-# which is more reliable than the automatic buildpacks.
+[build]
 
-
-# This section defines how web traffic reaches your application.
 [http_service]
-  internal_port = 8080 # The port your app listens on inside the container
-  force_https = true   # Automatically redirect HTTP to HTTPS
-  auto_stop_machines = true  # Stop machines when idle to save costs (for free tier)
-  auto_start_machines = true # Start machines automatically on new requests
-  min_machines_running = 0   # Allows the app to scale to zero (key for free tier)
-  
-  # This section defines health checks to ensure your app is running.
-  [[http_service.checks]]
-    interval = "10s"
-    timeout = "2s"
-    grace_period = "5s"
-    method = "GET"
-    path = "/"
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
 
-# This defines the size of the server (virtual machine) your app will run on.
-# The 'shared-cpu-1x' with 256MB memory is eligible for the free tier.
 [[vm]]
-  cpu_kind = "shared"
+  cpu_kind = 'shared'
   cpus = 1
-  memory_mb = 256
+  memory_mb = 1024
