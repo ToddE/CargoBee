@@ -13,7 +13,7 @@
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], }, }, }, }
     </script>
    {% if umami_script_url and umami_website_id %}
-    <script async src="{{ umami_script_url }}" data-website-id="{{ umami_website_id }}"></script>
+    <script defer src="{{ umami_script_url }}" data-website-id="{{ umami_website_id }}"></script>
     {% endif %}
 </head>
 <body class="font-sans text-slate-700">
