@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '1.0.1Beta')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.0Beta')
 UMAMI_SCRIPT_URL = os.getenv('UMAMI_SCRIPT_URL')
 UMAMI_WEBSITE_ID = os.getenv('UMAMI_WEBSITE_ID')
 ROAD_WEIGHT_LIMIT_KG = 19950
@@ -161,10 +161,27 @@ def calculate_palletized_load(form_inputs):
 
     pallets_left_to_ship = total_pallet_inventory.copy()
     container_manifests = []
+    
     while sum(pallets_left_to_ship.values()) > 0:
+        best_fit_container_key = None
+        pallets_for_best_fit = []
+
+        for key, container in reversed(list(CONTAINERS.items())):
+            pallets_packed_this_round = simulate_single_container_load(container, pallets_left_to_ship, pallet_configs, carton_weight)
+            
+            if len(pallets_packed_this_round) == sum(pallets_left_to_ship.values()):
+                best_fit_container_key = key
+                pallets_for_best_fit = pallets_packed_this_round
+                break 
+
+        if best_fit_container_key:
+            manifest = Counter(pallets_for_best_fit)
+            container_manifests.append({'key': best_fit_container_key, 'manifest': dict(manifest)})
+            pallets_left_to_ship.clear()
+        else:
             largest_key = list(CONTAINERS.keys())[0]
             largest_container = CONTAINERS[largest_key]
-
+            
             pallets_packed_this_round = simulate_single_container_load(largest_container, pallets_left_to_ship, pallet_configs, carton_weight)
 
             if not pallets_packed_this_round:
@@ -175,7 +192,7 @@ def calculate_palletized_load(form_inputs):
 
             for p_type, count in manifest.items():
                 pallets_left_to_ship[p_type] -= count
-
+            
             pallets_left_to_ship = {ptype: count for ptype, count in pallets_left_to_ship.items() if count > 0}
 
     total_pallets_built = sum(total_pallet_inventory.values())
@@ -228,10 +245,10 @@ def home():
         'containers': CONTAINERS, 
         'form_inputs': form_inputs, 
         'version': APP_VERSION, 
-        'road_weight_limit': ROAD_WEIGHT_LIMIT_KG, 
+        'road_weight_limit': ROAD_WEIGHT_LIMIT_KG,
         'umami_script_url': UMAMI_SCRIPT_URL,
         'umami_website_id': UMAMI_WEBSITE_ID
-        }
+    }
 
     # Only run calculations if there's something to calculate
     if request.method == 'POST' or 'total_cartons' in request.args:
