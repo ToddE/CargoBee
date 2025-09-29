@@ -72,7 +72,7 @@ Want to run or contribute to CargoBee on your own machine? Follow these steps.
   
 5. **Run the Development Server:**  
     ```bash
-     python app.py
+     python3 app.py
     ```
 
 6. **Browse to the App on your local machine**<br>

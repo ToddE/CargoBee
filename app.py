@@ -6,7 +6,9 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '1.0.0Beta')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.1Beta')
+UMAMI_SCRIPT_URL = os.getenv('UMAMI_SCRIPT_URL')
+UMAMI_WEBSITE_ID = os.getenv('UMAMI_WEBSITE_ID')
 ROAD_WEIGHT_LIMIT_KG = 19950
 CONTAINER_DOOR_HEIGHT_LIMIT_CM = 258 # Max physical height for a pallet to fit through the door
 CONTAINERS = {
@@ -222,7 +224,14 @@ def home():
             'pallet_l': '120', 'pallet_w': '100', 'pallet_h': '15', 'pallet_weight': '20', 'max_pallet_h': '152.4'
         }
 
-    context = {'containers': CONTAINERS, 'form_inputs': form_inputs, 'version': APP_VERSION, 'road_weight_limit': ROAD_WEIGHT_LIMIT_KG}
+    context = {
+        'containers': CONTAINERS, 
+        'form_inputs': form_inputs, 
+        'version': APP_VERSION, 
+        'road_weight_limit': ROAD_WEIGHT_LIMIT_KG, 
+        'umami_script_url': UMAMI_SCRIPT_URL,
+        'umami_website_id': UMAMI_WEBSITE_ID
+        }
 
     # Only run calculations if there's something to calculate
     if request.method == 'POST' or 'total_cartons' in request.args:

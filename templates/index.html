@@ -12,6 +12,9 @@
     <script>
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], }, }, }, }
     </script>
+   {% if umami_script_url and umami_website_id %}
+    <script async src="{{ umami_script_url }}" data-website-id="{{ umami_website_id }}"></script>
+    {% endif %}
 </head>
 <body class="font-sans text-slate-700">
     <div class="container mx-auto max-w-7xl p-4 md:p-8">
@@ -179,7 +182,7 @@
         </a>
         <div class="max-w-4xl mx-auto mt-4 space-y-2 text-xs text-gray-600">
             <p><strong>Disclaimer:</strong> The calculations and recommendations provided by this tool are for estimation and planning purposes only. While every effort is made to ensure accuracy, <strong>no warranty or guarantee is expressed or implied</strong>. Always verify final loading plans, weights, and dimensions with your carrier or freight forwarder before making financial commitments. The creators of this tool shall not be held liable for any damages or losses resulting from its use.</p>
-            <p><strong>Privacy & Data:</strong> This application utilizes your browser's `localStorage` to save your shipment profiles for your convenience. This data is stored exclusively on your own computer and is never transmitted to our servers. We do not use cookies or any other methods for tracking or analytics.</p>
+            <p><strong>Privacy & Data:</strong> This application utilizes your browser's `localStorage` to save your shipment profiles for your convenience. This data is stored exclusively on your own computer and is never transmitted to our servers. We do not use cookies. We use <a href="https://umami.is">Umami</a> for anonymized site usage analytics.</p>
         </div>
     </footer>
     <script>
