@@ -17,6 +17,16 @@ CONTAINERS = {
     '20ft': {'name': "20' Standard", 'length': 590, 'width': 235, 'height': 239}
 }
 
+
+# Calculates how many items fit and the remaining space.
+def calculate_remaining_space(container_dim, item_dim):
+    if item_dim == 0:
+        return 0, container_dim
+    items_fit = math.floor(container_dim / item_dim)
+    total_item_dim = items_fit * item_dim
+    remaining_space = container_dim - total_item_dim
+    return items_fit, round(remaining_space, 2)
+
 # --- Helper function to simulate loading pallets into a single container ---
 def simulate_single_container_load(container, pallet_inventory, pallet_configs, carton_weight):
     pallets_to_load = pallet_inventory.copy()
@@ -61,6 +71,7 @@ def calculate_floor_load(form_inputs):
     carton_h = float(form_inputs.get('carton_h') or 0)
     carton_weight = float(form_inputs.get('carton_weight') or 0)
 
+
     if not all([total_cartons, carton_l, carton_w, carton_h, carton_weight]):
         raise ValueError("One or more required carton fields are zero or missing.")
 
@@ -86,7 +97,7 @@ def calculate_floor_load(form_inputs):
             largest_key = list(CONTAINERS.keys())[0]
             container = CONTAINERS[largest_key]
             cartons_per_layer = max(math.floor(container['length']/carton_l) * math.floor(container['width']/carton_w), math.floor(container['length']/carton_w) * math.floor(container['width']/carton_l))
-            num_layers = math.floor(container['height'] / carton_h)
+            num_layers = math.floor(largest_container['height'] / carton_h)
             cartons_by_volume = cartons_per_layer * num_layers
             if cartons_by_volume == 0: raise Exception("A single carton is too large for any container.")
             container_capacity = min(cartons_by_volume, cartons_by_weight)
@@ -106,7 +117,20 @@ def calculate_floor_load(form_inputs):
             'weight': round(container_weight, 2),
             'items': [f"Floor-loaded with {c['cartons']} cartons."]
         })
-    final_results = {'recommendation': final_recommendation_str, 'pallet_configs': detailed_configs}
+    # final_results = {'recommendation': final_recommendation_str, 'pallet_configs': detailed_configs}
+
+    first_container_key = container_manifests[0]['key']
+    first_container = CONTAINERS[first_container_key]
+    _, rem_l = calculate_remaining_space(first_container['length'], carton_l)
+    _, rem_w = calculate_remaining_space(first_container['width'], carton_w)
+
+    final_results = {
+        'recommendation': final_recommendation_str, 
+        'pallet_configs': detailed_configs,
+        'remaining_l': rem_l,
+        'remaining_w': rem_w
+    }
+
     final_results['weight_status'] = "OVERWEIGHT" if is_overweight else "OK"
     return final_results
 
@@ -123,19 +147,22 @@ def calculate_palletized_load(form_inputs):
     pallet_h = float(form_inputs.get('pallet_h') or 0)
     max_pallet_h_from_user = float(form_inputs.get('max_pallet_h') or 0)
 
+   
+
     if not all([total_cartons, carton_l, carton_w, carton_h, carton_weight, pallet_l, pallet_w, pallet_h, max_pallet_h_from_user]):
         raise ValueError("One or more required carton or pallet fields are zero or missing.")
 
     max_pallet_h = min(max_pallet_h_from_user, CONTAINER_DOOR_HEIGHT_LIMIT_CM)
 
+    # Old cartons_per_layer without padding below:
     cartons_per_layer = max(math.floor(pallet_l / carton_l) * math.floor(pallet_w / carton_w), math.floor(pallet_l / carton_w) * math.floor(pallet_w / carton_l))
     if cartons_per_layer == 0: raise ValueError("Carton is larger than the pallet base.")
 
     layers_A = math.floor((max_pallet_h - pallet_h) / carton_h)
     if layers_A <= 0: raise ValueError("Cannot build a base pallet within warehouse/door height limit.")
-    pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
 
-    temp_container = CONTAINERS[list(CONTAINERS.keys())[0]]
+    pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
+    
     remaining_space = temp_container['height'] - pallet_configs['Base']['height']
     layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
     if layers_B > 0:
@@ -214,7 +241,7 @@ def calculate_palletized_load(form_inputs):
             desc_parts = [
                             f"<strong>{count} pallet(s) with {conf['layers']} layers</strong>",
                             f"Pallet Height: {conf['height']}cm tall",
-                            f"Pallet Capacity: {conf['cartons']} cartons/pallet",
+                            f"Pallet Capacity: <strong>{conf['cartons']}</strong> cartons/pallet",
                             f"Pallet Weight: {round(single_pallet_total_weight, 2)}kg"
                         ]
             container_detail['items'].append("<br>".join(desc_parts))
@@ -223,7 +250,20 @@ def calculate_palletized_load(form_inputs):
         if container_weight > ROAD_WEIGHT_LIMIT_KG: is_overweight = True
         detailed_configs.append(container_detail)
 
-    final_results = {'total_pallets': total_pallets_built, 'pallet_configs': detailed_configs, 'recommendation': final_recommendation_str}
+    # final_results = {'total_pallets': total_pallets_built, 'pallet_configs': detailed_configs, 'recommendation': final_recommendation_str}
+
+    first_container_key = container_manifests[0]['key']
+    first_container = CONTAINERS[first_container_key]
+    _, rem_l = calculate_remaining_space(first_container['length'], pallet_l)
+    _, rem_w = calculate_remaining_space(first_container['width'], pallet_w)
+
+    final_results = {
+        'total_pallets': total_pallets_built, 
+        'pallet_configs': detailed_configs, 
+        'recommendation': final_recommendation_str,
+        'remaining_l': rem_l,
+        'remaining_w': rem_w
+    }
     final_results['weight_status'] = "OVERWEIGHT" if is_overweight else "OK"
     return final_results
 
