@@ -7,7 +7,7 @@
 # <img src="https://github.com/ToddE/CargoBee/blob/main/static/images/cargobee.svg" height="100px"> CargoBee
 CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
 
-### [**➡️ Go to the Live Application**](https://CargoBee.fly.dev)
+### [**Go to the Live Application**](https://CargoBee.fly.dev)
 
 <p align="center" style="font-size: 0.5em">
 <img width="50%" alt="CargoBee Screenshot" src="https://github.com/user-attachments/assets/971e0515-df34-462d-8201-3851903c3b52" />
@@ -43,7 +43,7 @@ The algorithm then fills containers by prioritizing the most space-efficient com
 - **Containerization:** Docker, defined by the Dockerfile in this repository.
 - **Hosting:** Deployed on the Fly.io global application platform.
 
-## **💻 Local Development**
+## **Local Development **
 
 Want to run or contribute to CargoBee on your own machine? Follow these steps.
 

@@ -6,7 +6,7 @@ from collections import Counter
 app = Flask(__name__)
 
 # --- Constants ---
-APP_VERSION = os.getenv('APP_VERSION', '1.0.2Beta')
+APP_VERSION = os.getenv('APP_VERSION', '1.0.3Beta')
 UMAMI_SCRIPT_URL = os.getenv('UMAMI_SCRIPT_URL')
 UMAMI_WEBSITE_ID = os.getenv('UMAMI_WEBSITE_ID')
 ROAD_WEIGHT_LIMIT_KG = 19950
@@ -163,7 +163,10 @@ def calculate_palletized_load(form_inputs):
 
     pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
     
+    temp_container = CONTAINERS[list(CONTAINERS.keys())[0]]
+
     remaining_space = temp_container['height'] - pallet_configs['Base']['height']
+
     layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
     if layers_B > 0:
         pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight}

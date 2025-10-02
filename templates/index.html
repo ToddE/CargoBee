@@ -116,11 +116,22 @@
                 <h2 class="text-2xl font-semibold text-gray-700 mb-4">Results</h2>
                 {% if error %} <p class="text-red-600 font-semibold">{{ error }}</p> {% endif %}
                 {% if results %}
-                <div class="space-y-3">
-                    <p><strong class="font-semibold text-gray-800">Recommended Containers:</strong> {{ results.recommendation }}</p>
+                <div class="space-y-2">
+                    <p class="leading-none m-0 p-0"><strong class="font-semibold text-gray-800">Recommended Containers:</strong><p class="text-right leading-none m-0 p-0">{{ results.recommendation }}</p>
                     <p><strong class="font-semibold text-gray-800">Total Cargo Weight:</strong> {{ results.total_weight_kg }} kg <span class="{{ 'text-emerald-600' if 'OK' in results.weight_status else 'text-red-600' }} font-bold">({{ results.weight_status }})</span></p>
                     {% if results.total_pallets %} <p><strong class="font-semibold text-gray-800">Total Pallets to Build:</strong> {{ results.total_pallets }}</p> {% endif %}
-                    <p><strong class="font-semibold text-gray-800">Est. Remaining Floor Space:</strong> {{ results.remaining_l }}cm (Length) x {{ results.remaining_w }}cm (Width)</p>
+                    <p class="leading-none m-0 p-0">
+                        <strong class="font-semibold text-gray-800 flex items-center">
+                        Est. Remaining Floor Space:
+                        <span class="group relative ml-2">
+                            <span class="cursor-help rounded-full border border-gray-400 text-gray-400 w-5 h-5 flex items-center justify-center text-sm">?</span>
+                            <span class="absolute bottom-full left-1/2 -translate-x-1/2 w-48 p-2 bg-gray-700 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                Shows the total unused space along the container's length and width. This is the room you have for dunnage and maneuvering.
+                            </span>
+                        </span>
+                        </strong>
+                    </p>
+                    <p class="text-right leading-none m-0 p-0">{{ results.remaining_l }}cm (L) x {{ results.remaining_w }}cm (W)</p>
                     <div class="border-t pt-3">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Configuration Details:</h3>
                         <div class="space-y-4">
