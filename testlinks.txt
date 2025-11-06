@@ -1,0 +1,21 @@
+--- CargoBee Test Links ---
+
+1. Standard Load (Palletized):
+http://127.0.0.1:5000/?shipment_type=palletized&total_cartons=1200&carton_l=40&carton_w=30&carton_h=25&carton_weight=15&pallet_l=120&pallet_w=100&pallet_h=15&pallet_weight=20&max_pallet_h=160
+
+2. Heavy Cartons (Weight Limit Test):
+http://127.0.0.1:5000/?shipment_type=palletized&total_cartons=800&carton_l=40&carton_w=30&carton_h=25&carton_weight=25&pallet_l=120&pallet_w=100&pallet_h=15&pallet_weight=20&max_pallet_h=160
+
+3. Large Cartons (Volume Limit Test):
+http://127.0.0.1:5000/?shipment_type=palletized&total_cartons=500&carton_l=60&carton_w=50&carton_h=40&carton_weight=10&pallet_l=120&pallet_w=100&pallet_h=15&pallet_weight=20&max_pallet_h=180
+
+4. Small Cartons (Many Layers Test):
+http://127.0.0.1:5000/?shipment_type=palletized&total_cartons=5000&carton_l=20&carton_w=15&carton_h=10&carton_weight=2&pallet_l=120&pallet_w=100&pallet_h=15&pallet_weight=20&max_pallet_h=170
+
+5. Huge Shipment (Multi-Container Test):
+http://127.0.0.1:5000/?shipment_type=palletized&total_cartons=4000&carton_l=40&carton_w=30&carton_h=25&carton_weight=12&pallet_l=120&pallet_w=100&pallet_h=15&pallet_weight=20&max_pallet_h=160
+
+6. Floor-Loaded Shipment:
+http://127.0.0.1:5000/?shipment_type=floor_loaded&total_cartons=1500&carton_l=40&carton_w=30&carton_h=25&carton_weight=12
+
+--- End of Test Links ---

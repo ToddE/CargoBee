@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green)](./LICENSE)
 
 # <img src="https://github.com/ToddE/CargoBee/blob/main/static/images/cargobee.svg" height="100px"> CargoBee
-CargoBee is a logistics tool focused on solving a critical challenge: optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
+CargoBee is a logistics tool focused on optimally loading palletized cargo into shipping containers. It calculates multi-container shipment plans by generating mixed-height pallet configurations that respect both warehouse and container constraints, helping to maximize cubic space and prevent costly errors.
 
 ### [**Go to the Live Application**](https://CargoBee.fly.dev)
 
@@ -61,7 +61,7 @@ Want to run or contribute to CargoBee on your own machine? Follow these steps.
 
 3. **Create and Activate a Virtual Environment:**  
     ```bash
-    python3 \-m venv venv  
+    python3 -m venv venv  
     source venv/bin/activate
     ```
   

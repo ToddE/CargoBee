@@ -9,7 +9,17 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
     <script>
+        // This will be populated with data from Flask
+        var vizData = {};
         tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], }, }, }, }
     </script>
    {% if umami_script_url and umami_website_id %}
@@ -66,6 +76,15 @@
                                 <label for="carton_weight" class="block text-sm font-medium text-gray-700">Weight per Carton (kg)</label>
                                 <input id="carton_weight" type="number" name="carton_weight" value="{{ form_inputs.carton_weight }}" step="any" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm">
                             </div>
+                            <div>
+                                <label for="road_weight_limit" class="block text-sm font-medium text-gray-700 flex items-center">Max Road Weight per Container (kg)
+                                    <span class="group relative ml-2">
+                                        <span class="cursor-help rounded-full border border-gray-400 text-gray-400 w-5 h-5 flex items-center justify-center text-sm">?</span>
+                                        <span class="absolute bottom-full left-1/2 -translate-x-1/2 w-48 p-2 bg-gray-700 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">Defaults to road legal limit. Increase for maritime-only weight calculations.</span>
+                                    </span>
+                                </label>
+                                <input id="road_weight_limit" type="number" name="road_weight_limit" value="{{ form_inputs.road_weight_limit or road_weight_limit }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 sm:text-sm">
+                            </div>
                         </div>
                     </div>
                     <div id="pallet-fields" class="space-y-4">
@@ -120,18 +139,6 @@
                     <p class="leading-none m-0 p-0"><strong class="font-semibold text-gray-800">Recommended Containers:</strong><p class="text-right leading-none m-0 p-0">{{ results.recommendation }}</p>
                     <p><strong class="font-semibold text-gray-800">Total Cargo Weight:</strong> {{ results.total_weight_kg }} kg <span class="{{ 'text-emerald-600' if 'OK' in results.weight_status else 'text-red-600' }} font-bold">({{ results.weight_status }})</span></p>
                     {% if results.total_pallets %} <p><strong class="font-semibold text-gray-800">Total Pallets to Build:</strong> {{ results.total_pallets }}</p> {% endif %}
-                    <p class="leading-none m-0 p-0">
-                        <strong class="font-semibold text-gray-800 flex items-center">
-                        Est. Remaining Floor Space:
-                        <span class="group relative ml-2">
-                            <span class="cursor-help rounded-full border border-gray-400 text-gray-400 w-5 h-5 flex items-center justify-center text-sm">?</span>
-                            <span class="absolute bottom-full left-1/2 -translate-x-1/2 w-48 p-2 bg-gray-700 text-white text-sm rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                Shows the total unused space along the container's length and width. This is the room you have for dunnage and maneuvering.
-                            </span>
-                        </span>
-                        </strong>
-                    </p>
-                    <p class="text-right leading-none m-0 p-0">{{ results.remaining_l }}cm (L) x {{ results.remaining_w }}cm (W)</p>
                     <div class="border-t pt-3">
                         <h3 class="text-lg font-semibold text-gray-800 mb-2">Configuration Details:</h3>
                         <div class="space-y-4">
@@ -144,11 +151,19 @@
                                     <span class="{{ 'text-emerald-600' if container_data.weight <= road_weight_limit else 'text-red-600' }} font-bold">
                                         {{ container_data.weight }}</span>kg
                                 </p>
+                                {% if container_data.remaining_space %}
+                                <p class="text-sm text-gray-800"><strong>Est. Remaining Floor Space:</strong> {{ container_data.remaining_space.l }}cm (L) x {{ container_data.remaining_space.w }}cm (W)</p>
+                                {% endif %}
                                 <ul class="list-disc text-gray-700 mt-1 pl-4 text-sm">
                                     {% for item in container_data['items'] %}
                                     <li class="mb-2">{{ item | safe }}</li>
                                     {% endfor %}
                                 </ul>
+                                {% if container_data.viz_data and container_data.viz_data.items %}
+                                <div id="viz-container-{{ loop.index0 }}" class="mt-4 border rounded-lg bg-gray-200" style="height: 250px; position: relative;">
+                                    <script>vizData['{{ loop.index0 }}'] = {{ container_data.viz_data | tojson }};</script>
+                                </div>
+                                {% endif %}
                             </div>
                             {% else %}
                             <p class="text-gray-700">{{ container_data }}</p>
@@ -169,10 +184,6 @@
                 <div class="bg-gray-50 p-6 rounded-lg shadow-sm border">
                     <h2 class="text-2xl font-semibold text-gray-700 mb-4">Reference Data</h2>
                     <div class="space-y-3 text-sm">
-                        <div>
-                            <p class="font-semibold text-gray-700">Max Road Weight (Cargo):</p>
-                            <p class="text-gray-800">{{ road_weight_limit }} kg</p>
-                        </div>
                         <div class="border-t pt-3">
                             <p class="font-semibold text-gray-700">Container Dimensions (LWH):</p>
                             <ul class="list-disc list-inside text-gray-800 mt-1">
@@ -198,8 +209,16 @@
             <p><strong>Privacy & Data:</strong> This application utilizes your browser's `localStorage` to save your shipment profiles for your convenience. This data is stored exclusively on your own computer and is never transmitted to our servers. We do not use cookies. We use <a href="https://umami.is">Umami</a> for anonymized site usage analytics.</p>
         </div>
     </footer>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.164.1/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.164.1/examples/jsm/"
+            }
+        }
+    </script>
     <script>
-        const inputIds = ['total_cartons', 'carton_weight', 'carton_l', 'carton_w', 'carton_h', 'pallet_l', 'pallet_w', 'pallet_h', 'max_pallet_h'];
+        const inputIds = ['total_cartons', 'carton_weight', 'carton_l', 'carton_w', 'carton_h', 'pallet_l', 'pallet_w', 'pallet_h', 'max_pallet_h', 'pallet_weight', 'road_weight_limit'];
         function generateShareLink(){const e=new URLSearchParams;e.append("shipment_type",document.querySelector('input[name="shipment_type"]:checked').value),inputIds.forEach(t=>{const n=document.getElementById(t);n.value&&e.append(t,n.value)});const t=window.location.origin+window.location.pathname+"?"+e.toString();navigator.clipboard.writeText(t).then(()=>{const e=document.getElementById("btn-share");e.textContent="Link Copied!",setTimeout(()=>{e.textContent="Copy Share Link"},2e3)})}
         function loadFromURL(){const e=new URLSearchParams(window.location.search);if(e.has("total_cartons")){e.get("shipment_type")==="floor_loaded"?document.getElementById("type-floor").checked=!0:document.getElementById("type-palletized").checked=!0,inputIds.forEach(t=>{e.has(t)&&(document.getElementById(t).value=e.get(t))}),togglePalletFields();return!0}return!1}
         function togglePalletFields(){const e=document.getElementById("pallet-fields");e.style.display=document.getElementById("type-palletized").checked?"block":"none"}
@@ -211,7 +230,98 @@
         function loadProfile(e){const t=getProfiles().find(t=>t.name===e);if(t){const i=t.inputs;"floor_loaded"===i.shipment_type?document.getElementById("type-floor").checked=!0:document.getElementById("type-palletized").checked=!0,inputIds.forEach(e=>{i.hasOwnProperty(e)&&(document.getElementById(e).value=i[e])}),togglePalletFields()}}
         function deleteProfile(e){confirm(`Delete "${e}"?`)&&(profiles=getProfiles().filter(t=>t.name!==e),saveProfiles(profiles),renderProfiles())}document.addEventListener("DOMContentLoaded",()=>{loadFromURL()||void 0,renderProfiles(),togglePalletFields()});
     </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        function initVisualization(containerId, data) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xe5e7eb); // bg-gray-200
+
+            const camera = new THREE.PerspectiveCamera(50, container.clientWidth / container.clientHeight, 0.1, 20000);
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.appendChild(renderer.domElement);
+
+            const labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(container.clientWidth, container.clientHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            container.appendChild(labelRenderer.domElement);
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            // Scale factor for visualization
+            const scale = 0.1;
+            const cont = data.container;
+
+            // Container Box
+            const containerGeom = new THREE.BoxGeometry(cont.length * scale, cont.height * scale, cont.width * scale);
+            const containerEdges = new THREE.EdgesGeometry(containerGeom);
+            const containerLine = new THREE.LineSegments(containerEdges, new THREE.LineBasicMaterial({ color: 0x4b5563 })); // text-gray-600
+            containerLine.position.set((cont.length * scale) / 2, (cont.height * scale) / 2, (cont.width * scale) / 2);
+            scene.add(containerLine);
+
+            // Add Container Labels
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'text-xs text-gray-600 font-semibold p-1';
+            labelDiv.style.textShadow = '0 0 5px white';
+            labelDiv.textContent = `${cont.name} (${cont.length}x${cont.width}x${cont.height}cm)`;
+
+            const containerLabel = new CSS2DObject(labelDiv);
+            // Position the label slightly above the container wireframe
+            containerLabel.position.set(
+                (cont.length * scale) / 2,
+                (cont.height * scale) + 10, // 10px above
+                (cont.width * scale) / 2
+            );
+            scene.add(containerLabel);
+
+            // Pallet Colors
+            const colors = { Base: 0xfbbf24, Topper: 0x60a5fa, Remnant: 0xf87171 };
+
+            // Add items
+            data.items.forEach(item => {
+                const geom = new THREE.BoxGeometry(item.l * scale, item.h * scale, item.w * scale);
+                const material = new THREE.MeshStandardMaterial({ color: colors[item.type] || 0x9ca3af, roughness: 0.5, metalness: 0.1 });
+                const cube = new THREE.Mesh(geom, material);
+                cube.position.set(
+                    (item.x + item.l / 2) * scale,
+                    (item.z + item.h / 2) * scale,
+                    (item.y + item.w / 2) * scale
+                );
+                scene.add(cube);
+            });
+
+            // Lighting
+            scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            dirLight.position.set(cont.length * scale, cont.height * scale * 2, cont.width * scale);
+            scene.add(dirLight);
+
+            camera.position.set(cont.length * scale * 1.5, cont.height * scale * 1.5, cont.width * scale * 1.5);
+            camera.lookAt(scene.position);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                controls.update();
+                labelRenderer.render(scene, camera);
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            for (const key in vizData) {
+                initVisualization(`viz-container-${key}`, vizData[key]);
+            }
+        });
+    </script>
 </body>
 </html>
-
-
