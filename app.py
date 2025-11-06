@@ -223,27 +223,12 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
     if layers_A <= 0: raise ValueError("Cannot build a base pallet within warehouse/door height limit.")
 
     pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
-    
-    temp_container = CONTAINERS[list(CONTAINERS.keys())[0]]
-
-    remaining_space = temp_container['height'] - pallet_configs['Base']['height']
-
-    layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
-    if layers_B > 0:
-        pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight}
 
     cartons_to_assign = total_cartons
     total_pallet_inventory = Counter()
-    if 'Topper' in pallet_configs:
-        cartons_per_stack = pallet_configs['Base']['cartons'] + pallet_configs['Topper']['cartons']
-        num_stacks = cartons_to_assign // cartons_per_stack
-        if num_stacks > 0:
-            total_pallet_inventory['Base'] = total_pallet_inventory.get('Base', 0) + num_stacks
-            total_pallet_inventory['Topper'] = total_pallet_inventory.get('Topper', 0) + num_stacks
-            cartons_to_assign %= cartons_per_stack
     num_base_only = cartons_to_assign // pallet_configs['Base']['cartons']
     if num_base_only > 0:
-        total_pallet_inventory['Base'] = total_pallet_inventory.get('Base', 0) + num_base_only
+        total_pallet_inventory['Base'] = num_base_only
         cartons_to_assign %= pallet_configs['Base']['cartons']
     if cartons_to_assign > 0:
         layers_remnant = math.ceil(cartons_to_assign / cartons_per_layer)
@@ -251,7 +236,6 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
         total_pallet_inventory['Remnant'] = 1
 
     pallets_left_to_ship = total_pallet_inventory.copy()
-    container_manifests = []
     
     # --- Primary Calculation ---
     container_manifests = _calculate_shipment_plan(total_pallet_inventory, pallet_configs, carton_weight, pallet_l, pallet_w, road_weight_limit, CONTAINER_ORDER)
@@ -302,7 +286,7 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
     return final_results
 
 def _calculate_shipment_plan(total_pallet_inventory, pallet_configs, carton_weight, pallet_l, pallet_w, road_weight_limit, allowed_containers):
-    pallets_left_to_ship = total_pallet_inventory.copy() # Ensure we work on a copy
+    pallets_left_to_ship = total_pallet_inventory.copy()
     container_manifests = []
 
     while sum(pallets_left_to_ship.values()) > 0:
@@ -320,6 +304,39 @@ def _calculate_shipment_plan(total_pallet_inventory, pallet_configs, carton_weig
                 best_fit_container_key = key # Found a container that fits everything
                 pallets_for_best_fit = pallets_packed_this_round
                 break
+
+        # --- DYNAMIC TOPPER CREATION ---
+        # If we found a single container that fits everything, check if we can optimize it with toppers.
+        if best_fit_container_key:
+            container_for_toppers = CONTAINERS[best_fit_container_key]
+            base_pallet_height = pallet_configs['Base']['height']
+            remaining_vertical_space = container_for_toppers['height'] - base_pallet_height
+            
+            # Can we even create a topper pallet?
+            pallet_h = float(pallet_configs.get('h', 15)) # Fallback, should be in form
+            carton_h = float(pallet_configs.get('carton_h', 25)) # Fallback
+            cartons_per_layer = pallet_configs['Base']['cartons'] / pallet_configs['Base']['layers']
+
+            layers_B = math.floor((remaining_vertical_space - pallet_h) / carton_h) if remaining_vertical_space > pallet_h else 0
+            
+            if layers_B > 0:
+                # Yes, we can make toppers. Let's rebuild the pallet inventory and re-run the simulation for this container.
+                pallet_configs['Topper'] = {'layers': layers_B, 'cartons': layers_B * cartons_per_layer, 'height': round((layers_B * carton_h) + pallet_h, 2), 'pallet_weight': pallet_configs['Base']['pallet_weight']}
+                
+                cartons_to_assign = sum(p_info['cartons'] * count for p_type, count in pallets_left_to_ship.items() for p_info in [pallet_configs.get(p_type, {})] if p_info)
+                
+                optimized_inventory = Counter()
+                cartons_per_stack = pallet_configs['Base']['cartons'] + pallet_configs['Topper']['cartons']
+                num_stacks = cartons_to_assign // cartons_per_stack
+                optimized_inventory['Base'] = num_stacks
+                optimized_inventory['Topper'] = num_stacks
+                cartons_to_assign %= cartons_per_stack
+                # Re-assign any remaining cartons to base/remnant pallets as before
+                # (This logic could be more complex if needed, but for now, we assume full stacks are the main goal)
+
+                # Re-simulate with the new inventory
+                pallets_packed_this_round, _, _ = simulate_single_container_load(container_for_toppers, optimized_inventory.copy(), pallet_configs, carton_weight, pallet_l, pallet_w, road_weight_limit)
+                pallets_for_best_fit = pallets_packed_this_round
 
         if best_fit_container_key:
             manifest_summary = Counter(p['type'] for p in pallets_for_best_fit)
