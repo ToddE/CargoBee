@@ -76,7 +76,22 @@ Want to run or contribute to CargoBee on your own machine? Follow these steps.
     ```
 
 6. **Browse to the App on your local machine**<br>
-If everything goes well, use your web browser to go to [https://127.0.0.1:5000](https://127.0.0.1:5000) on your machine.
+If everything goes well, use your web browser to go to [http://127.0.0.1:5000](http://127.0.0.1:5000) on your machine.
+
+## Tests
+
+The test suite checks every palletized plan across a grid of inputs: every carton ships, no stack is taller than its container, no container is over the weight limit, and the totals match the manifest. It also runs the share-link cases in `generate_test_links.py` through the web app.
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+Tests run on GitHub Actions for every push and pull request.
+
+## Deployment
+
+The live app runs on Fly.io. Pushing a tag that starts with `v` (for example `v1.0.5`) runs the tests and, if they pass, deploys to Fly with `APP_VERSION` set to the tag. The workflow needs a `FLY_API_TOKEN` repository secret (create one with `fly tokens create deploy`).
 
 ## Bugs or Contributions
 This project was built to solve a real-world problem. Your input can make it even better!

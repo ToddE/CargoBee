@@ -24,6 +24,41 @@ PALLET_COLORS_HEX = {
     'default': '#9ca3af'
 }
 
+FIELD_LABELS = {
+    'total_cartons': 'Total cartons',
+    'carton_l': 'Carton length',
+    'carton_w': 'Carton width',
+    'carton_h': 'Carton height',
+    'carton_weight': 'Carton weight',
+    'pallet_l': 'Pallet length',
+    'pallet_w': 'Pallet width',
+    'pallet_h': 'Pallet height',
+    'pallet_weight': 'Pallet weight',
+    'max_pallet_h': 'Max pallet height',
+    'road_weight_limit': 'Road weight limit',
+}
+
+
+def read_number(form_inputs, name, cast=float, allow_zero=False):
+    """Read a numeric form field. Raises ValueError with a readable message."""
+    label = FIELD_LABELS.get(name, name)
+    raw = str(form_inputs.get(name) or '').strip()
+    if raw == '':
+        if allow_zero:
+            return cast(0)
+        raise ValueError(f"{label} is required.")
+    try:
+        value = cast(float(raw)) if cast is int else cast(raw)
+    except ValueError:
+        raise ValueError(f"{label} must be a number (got '{raw}').")
+    if cast is int and float(raw) != value:
+        raise ValueError(f"{label} must be a whole number.")
+    if not math.isfinite(value):
+        raise ValueError(f"{label} must be a finite number.")
+    if value < 0 or (value == 0 and not allow_zero):
+        raise ValueError(f"{label} must be greater than zero.")
+    return value
+
 
 # Calculates how many items fit and the remaining space.
 def calculate_remaining_space(container_dim, item_dim):
@@ -126,15 +161,14 @@ def simulate_single_container_load(container, pallet_inventory, pallet_configs, 
 
 # --- Calculation Function for Floor-Loaded Shipments ---
 def calculate_floor_load(form_inputs, road_weight_limit):
-    total_cartons = int(form_inputs.get('total_cartons') or 0)
-    carton_l = float(form_inputs.get('carton_l') or 0)
-    carton_w = float(form_inputs.get('carton_w') or 0)
-    carton_h = float(form_inputs.get('carton_h') or 0)
-    carton_weight = float(form_inputs.get('carton_weight') or 0)
+    total_cartons = read_number(form_inputs, 'total_cartons', int)
+    carton_l = read_number(form_inputs, 'carton_l')
+    carton_w = read_number(form_inputs, 'carton_w')
+    carton_h = read_number(form_inputs, 'carton_h')
+    carton_weight = read_number(form_inputs, 'carton_weight')
 
-
-    if not all([total_cartons, carton_l, carton_w, carton_h, carton_weight]):
-        raise ValueError("One or more required carton fields are zero or missing.")
+    if carton_weight > road_weight_limit:
+        raise ValueError("A single carton is heavier than the road weight limit.")
 
     cartons_left_to_ship = total_cartons
     container_manifests = []
@@ -197,21 +231,16 @@ def calculate_floor_load(form_inputs, road_weight_limit):
 
 # --- Calculation Function for Palletized Shipments ---
 def calculate_palletized_load(form_inputs, road_weight_limit):
-    total_cartons = int(form_inputs.get('total_cartons') or 0)
-    carton_l = float(form_inputs.get('carton_l') or 0)
-    carton_w = float(form_inputs.get('carton_w') or 0)
-    carton_h = float(form_inputs.get('carton_h') or 0)
-    carton_weight = float(form_inputs.get('carton_weight') or 0)
-    pallet_weight = float(form_inputs.get('pallet_weight') or 0)
-    pallet_l = float(form_inputs.get('pallet_l') or 0)
-    pallet_w = float(form_inputs.get('pallet_w') or 0)
-    pallet_h = float(form_inputs.get('pallet_h') or 0)
-    max_pallet_h_from_user = float(form_inputs.get('max_pallet_h') or 0)
-
-   
-
-    if not all([total_cartons, carton_l, carton_w, carton_h, carton_weight, pallet_l, pallet_w, pallet_h, max_pallet_h_from_user]):
-        raise ValueError("One or more required carton or pallet fields are zero or missing.")
+    total_cartons = read_number(form_inputs, 'total_cartons', int)
+    carton_l = read_number(form_inputs, 'carton_l')
+    carton_w = read_number(form_inputs, 'carton_w')
+    carton_h = read_number(form_inputs, 'carton_h')
+    carton_weight = read_number(form_inputs, 'carton_weight')
+    pallet_weight = read_number(form_inputs, 'pallet_weight', allow_zero=True)
+    pallet_l = read_number(form_inputs, 'pallet_l')
+    pallet_w = read_number(form_inputs, 'pallet_w')
+    pallet_h = read_number(form_inputs, 'pallet_h')
+    max_pallet_h_from_user = read_number(form_inputs, 'max_pallet_h')
 
     max_pallet_h = min(max_pallet_h_from_user, CONTAINER_DOOR_HEIGHT_LIMIT_CM)
 
@@ -222,7 +251,7 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
     layers_A = math.floor((max_pallet_h - pallet_h) / carton_h)
     if layers_A <= 0: raise ValueError("Cannot build a base pallet within warehouse/door height limit.")
 
-    pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
+    pallet_configs = { 'l': pallet_l, 'w': pallet_w, 'h': pallet_h, 'Base': {'layers': layers_A, 'cartons': layers_A * cartons_per_layer, 'height': round((layers_A * carton_h) + pallet_h, 2), 'pallet_weight': pallet_weight} }
 
     cartons_to_assign = total_cartons
     total_pallet_inventory = Counter()
@@ -241,7 +270,7 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
     # Pass 2: Check if using Toppers results in a better plan (fewer containers).
     final_container_manifests, final_pallet_configs = _optimize_with_toppers(base_container_manifests, total_cartons, pallet_configs, cartons_per_layer, carton_h, carton_weight, pallet_l, pallet_w, road_weight_limit)
 
-    total_pallets_built = sum(total_pallet_inventory.values())
+    total_pallets_built = sum(sum(c['manifest'].values()) for c in final_container_manifests)
     container_counts = Counter(c['key'] for c in final_container_manifests)
     final_recommendation_str = " & ".join([f"{count} x {CONTAINERS[key]['name']}" for key, count in sorted(container_counts.items(), reverse=True)])
 
@@ -256,7 +285,8 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
             'weight': 0, 
             'items': [],
             'viz_data': {'container': CONTAINERS[c['key']], 'items': c['items_3d']},
-            'remaining_space': {'l': round(rem_l, 2), 'w': round(rem_w, 2)}
+            'remaining_space': {'l': round(rem_l, 2), 'w': round(rem_w, 2)},
+            'pallets': [],
         }
         for p_type, count in sorted(c['manifest'].items(), key=lambda item: final_pallet_configs[item[0]]['height'], reverse=True):
             conf = final_pallet_configs[p_type]
@@ -264,6 +294,11 @@ def calculate_palletized_load(form_inputs, road_weight_limit):
             single_pallet_total_weight = (conf['cartons'] * carton_weight) + conf.get('pallet_weight', 0)
             
             container_weight += count * single_pallet_total_weight
+            container_detail['pallets'].append({
+                'type': p_type, 'count': count, 'layers': conf['layers'],
+                'cartons': conf['cartons'], 'height': conf['height'],
+                'weight': round(single_pallet_total_weight, 2),
+            })
 
             color = PALLET_COLORS_HEX.get(p_type, PALLET_COLORS_HEX['default'])
             desc_parts = [
@@ -292,7 +327,7 @@ def _optimize_with_toppers(original_manifests, total_cartons, original_pallet_co
     """
     # Toppers are only useful if they can be stacked, which requires a High Cube container.
     hc_container = CONTAINERS['40ft_HC']
-    pallet_h = original_pallet_configs.get('h', 15) # Assuming pallet height is stored in pallet_configs
+    pallet_h = original_pallet_configs['h']
     remaining_space = hc_container['height'] - original_pallet_configs['Base']['height']
     layers_B = math.floor((remaining_space - pallet_h) / carton_h) if remaining_space > pallet_h else 0
 
@@ -316,11 +351,11 @@ def _optimize_with_toppers(original_manifests, total_cartons, original_pallet_co
         optimized_inventory['Base'] += num_base
         cartons_to_assign -= num_base * optimized_pallet_configs['Base']['cartons']
     
+    # The leftover count differs from the first pass, so always rebuild the Remnant config.
+    optimized_pallet_configs.pop('Remnant', None)
     if cartons_to_assign > 0:
         layers_remnant = math.ceil(cartons_to_assign / cartons_per_layer)
-        # Ensure Remnant config is added if it will be used.
-        if 'Remnant' not in optimized_pallet_configs:
-             optimized_pallet_configs['Remnant'] = {'layers': layers_remnant, 'cartons': cartons_to_assign, 'height': round((layers_remnant * carton_h) + pallet_h, 2), 'pallet_weight': original_pallet_configs['Base']['pallet_weight']}
+        optimized_pallet_configs['Remnant'] = {'layers': layers_remnant, 'cartons': cartons_to_assign, 'height': round((layers_remnant * carton_h) + pallet_h, 2), 'pallet_weight': original_pallet_configs['Base']['pallet_weight']}
         optimized_inventory['Remnant'] = 1
 
     # Re-run the shipment plan with the new inventory
@@ -478,7 +513,10 @@ def home():
     # Only run calculations if there's something to calculate
     if request.method == 'POST' or 'total_cartons' in request.args:
         try:
-            road_weight_limit = float(form_inputs.get('road_weight_limit') or ROAD_WEIGHT_LIMIT_KG)
+            if str(form_inputs.get('road_weight_limit') or '').strip():
+                road_weight_limit = read_number(form_inputs, 'road_weight_limit')
+            else:
+                road_weight_limit = ROAD_WEIGHT_LIMIT_KG
             shipment_type = form_inputs.get('shipment_type')
             
             if shipment_type == 'floor_loaded':
@@ -486,12 +524,12 @@ def home():
             else: # Palletized is the default
                 final_results = calculate_palletized_load(form_inputs, road_weight_limit)
             
-            total_cartons = int(form_inputs.get('total_cartons') or 0)
-            carton_weight = float(form_inputs.get('carton_weight') or 0)
+            total_cartons = read_number(form_inputs, 'total_cartons', int)
+            carton_weight = read_number(form_inputs, 'carton_weight')
             total_cargo_weight = total_cartons * carton_weight
 
             if shipment_type != 'floor_loaded':
-                 pallet_weight = float(form_inputs.get('pallet_weight') or 0)
+                 pallet_weight = read_number(form_inputs, 'pallet_weight', allow_zero=True)
                  total_cargo_weight += final_results.get('total_pallets', 0) * pallet_weight
 
             final_results['total_weight_kg'] = round(total_cargo_weight, 2)
